@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<l10n>
+	<translationContributors>LeGrizzly</translationContributors>
+	<texts>
+		<text name="UNKNOWN" text="Inconnu" />
+        <text name="input_SHOW_EMPLOYEE_MENU" text="Afficher le menu des employés" />
+        <text name="EM_employee_management" text="Gestion des Employés" />
+	</texts>
+</l10n>
