@@ -3,6 +3,7 @@ EmployeeUtils = {}
 EmployeeUtils.showDebug = true
 
 function EmployeeUtils.debugPrint(message)
+    Logging.info("[EmployeeUtils] debugPrint()")
     if not EmployeeUtils.showDebug then
         return
     end

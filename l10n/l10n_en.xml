@@ -18,5 +18,25 @@
 		<text name="em_action_fire" text="Fire" />
 		<text name="em_action_assign_vehicle" text="Assign Vehicle" />
 		<text name="em_action_assign_job" text="Assign Job" />
+
+		<!-- GUI specific -->
+		<text name="em_current_balance" text="Current Balance" />
+		<text name="em_no_employees" text="No employees available." />
+		<text name="em_employee_empty" text="Select an employee to see details." />
+		<text name="em_employee_status_label" text="Status" />
+		<text name="em_employee_skills_title" text="Skills" />
+		<text name="em_employee_total_wage" text="Total Wage" />
+		<text name="em_available" text="Available" />
+		<text name="em_hired" text="Hired" />
+		<text name="em_header_employees" text="Employees" />
+		<text name="em_btn_hire" text="Hire" />
+		<text name="em_btn_fire" text="Fire" />
+		<text name="em_btn_assign" text="Assign Vehicle" />
+		<text name="em_dialog_hire_yes_no" text="Are you sure you want to hire %s?" />
+		<text name="em_dialog_hire_yes_no_btn" text="Hire Employee" />
+		<text name="em_dialog_fire_yes_no" text="Are you sure you want to fire %s?" />
+		<text name="em_dialog_fire_yes_no_btn" text="Fire Employee" />
+		<text name="em_employee_id_label" text="ID: %d" />
+		<text name="em_status_hired" text="Hired" />
 	</texts>
 </l10n>

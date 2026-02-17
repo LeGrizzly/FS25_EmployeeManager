@@ -7,7 +7,12 @@ function Employee.new(id, name, skills)
     self.id = id or 0
     self.name = name or ("Employee_" .. tostring(self.id))
     self.skills = skills or { driving = 1, harvesting = 1, technical = 1 }
+    
+    self.isHired = false
     self.assignedVehicle = nil
+    self.assignedField = nil
+    self.workTime = 0
+    self.kmDriven = 0
     self.currentJob = nil
     self.isRenting = false
     return self
@@ -19,6 +24,12 @@ end
 
 function Employee:unassignVehicle()
     self.assignedVehicle = nil
+end
+
+function Employee:getDailyWage()
+    local baseWage = 50
+    local skillSum = (self.skills.driving or 0) + (self.skills.harvesting or 0) + (self.skills.technical or 0)
+    return baseWage + (skillSum * 10)
 end
 
 function Employee:getFullName()

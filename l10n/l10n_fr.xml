@@ -18,5 +18,25 @@
 		<text name="em_action_fire" text="Virer" />
 		<text name="em_action_assign_vehicle" text="Assigner Véhicule" />
 		<text name="em_action_assign_job" text="Assigner Tâche" />
+
+		<!-- GUI spécifique -->
+		<text name="em_current_balance" text="Solde Actuel" />
+		<text name="em_no_employees" text="Aucun employé disponible." />
+		<text name="em_employee_empty" text="Sélectionnez un employé pour voir les détails." />
+		<text name="em_employee_status_label" text="Statut" />
+		<text name="em_employee_skills_title" text="Compétences" />
+		<text name="em_employee_total_wage" text="Salaire Total" />
+		<text name="em_available" text="Disponibles" />
+		<text name="em_hired" text="Engagés" />
+		<text name="em_header_employees" text="Employés" />
+		<text name="em_btn_hire" text="Engager" />
+		<text name="em_btn_fire" text="Virer" />
+		<text name="em_btn_assign" text="Assigner Véhicule" />
+		<text name="em_dialog_hire_yes_no" text="Êtes-vous sûr de vouloir engager %s ?" />
+		<text name="em_dialog_hire_yes_no_btn" text="Engager l'employé" />
+		<text name="em_dialog_fire_yes_no" text="Êtes-vous sûr de vouloir virer %s ?" />
+		<text name="em_dialog_fire_yes_no_btn" text="Virer l'employé" />
+		<text name="em_employee_id_label" text="ID : %d" />
+		<text name="em_status_hired" text="Engagé" />
 	</texts>
 </l10n>

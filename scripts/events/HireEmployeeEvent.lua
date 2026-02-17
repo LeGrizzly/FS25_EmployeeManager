@@ -3,6 +3,7 @@ HireEmployeeEvent = {}
 local HireEmployeeEvent_mt = Class(HireEmployeeEvent, Event)
 
 function HireEmployeeEvent.new(name, skills)
+    Logging.info("[HireEmployeeEvent] new(name: %s)", tostring(name))
     local self = Event.new(HireEmployeeEvent_mt)
     self.name = name
     self.skills = skills

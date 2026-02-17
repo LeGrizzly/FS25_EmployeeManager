@@ -3,6 +3,7 @@ EmployeeManager = {}
 local EmployeeManager_mt = Class(EmployeeManager)
 
 function EmployeeManager:new(mission)
+    EmployeeUtils.debugPrint("[EmployeeManager] new()")
     local self = setmetatable({}, EmployeeManager_mt)
     self.mission = mission
     self.employees = {}
@@ -13,32 +14,52 @@ end
 
 function EmployeeManager:onMissionInitialize(baseDirectory)
     EmployeeUtils.debugPrint("--- Mission Initializing! ---")
-    print("[FS25_EmployeeManager] EmployeeManager: Mission initialized with base directory: " .. tostring(baseDirectory))
+    EmployeeUtils.debugPrint("[FS25_EmployeeManager] EmployeeManager: Mission initialized with base directory: " .. tostring(baseDirectory))
 end
 
-function EmployeeManager:getEmployees()
-    return self.employees
-end
-
-function EmployeeManager:hireEmployee(name, skills)
-    local id = 1
+function EmployeeManager:getHiredEmployees()
+    EmployeeUtils.debugPrint("[EmployeeManager] getHiredEmployees()")
+    local hired = {}
     for _, e in ipairs(self.employees) do
-        if e.id >= id then
-            id = e.id + 1
+        if e.isHired then
+            table.insert(hired, e)
         end
     end
-    local emp = Employee.new(id, name, skills)
-    table.insert(self.employees, emp)
-    EmployeeUtils.debugPrint(string.format("--- Hired employee id=%d name=%s ---", emp.id, emp.name))
-    g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
-    return emp
+    return hired
+end
+
+function EmployeeManager:getAvailableEmployees()
+    EmployeeUtils.debugPrint("[EmployeeManager] getAvailableEmployees()")
+    local available = {}
+    for _, e in ipairs(self.employees) do
+        if not e.isHired then
+            table.insert(available, e)
+        end
+    end
+    return available
+end
+
+function EmployeeManager:hireEmployee(id)
+    EmployeeUtils.debugPrint("[EmployeeManager] hireEmployee(id: %s)", tostring(id))
+    for _, e in ipairs(self.employees) do
+        if e.id == id then
+            e.isHired = true
+            g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
+            return e
+        end
+    end
+    return nil
 end
 
 function EmployeeManager:fireEmployee(id)
-    for idx, e in ipairs(self.employees) do
+    EmployeeUtils.debugPrint("[EmployeeManager] fireEmployee(id: %s)", tostring(id))
+    for _, e in ipairs(self.employees) do
         if e.id == id then
-            table.remove(self.employees, idx)
-            EmployeeUtils.debugPrint(string.format("--- Fired employee id=%d ---", id))
+            e.isHired = false
+            -- Reset other properties if needed
+            e.assignedVehicle = nil
+            e.assignedField = nil
+            e.workTime = 0
             g_messageCenter:publish(MessageType.EMPLOYEE_REMOVED)
             return true
         end
@@ -47,6 +68,7 @@ function EmployeeManager:fireEmployee(id)
 end
 
 function EmployeeManager:generateRandomEmployee()
+    EmployeeUtils.debugPrint("[EmployeeManager] generateRandomEmployee()")
     math.randomseed(g_currentMission.time + math.random(1, 1000))
     local firstName = self.firstNames[math.random(#self.firstNames)]
     local lastName = self.lastNames[math.random(#self.lastNames)]
@@ -56,15 +78,34 @@ function EmployeeManager:generateRandomEmployee()
         harvesting = math.random(1, 5),
         technical = math.random(1, 5)
     }
-    self:hireEmployee(name, skills)
+
+    local id = #self.employees + 1
+    local emp = Employee.new(id, name, skills)
+    emp.isHired = false
+    table.insert(self.employees, emp)
+    return emp
+end
+
+function EmployeeManager:getEmployeeById(id)
+    for _, e in ipairs(self.employees) do
+        if e.id == id then
+            return e
+        end
+    end
+    return nil
 end
 
 function EmployeeManager:saveToXMLFile(xmlFile, key)
+    EmployeeUtils.debugPrint("[EmployeeManager] saveToXMLFile()")
+    local hiredEmployees = self:getHiredEmployees()
     local empKey = key .. ".employees"
-    for i, e in ipairs(self.employees) do
+    for i, e in ipairs(hiredEmployees) do
         local base = string.format("%s.employee(%d)", empKey, i-1)
         setXMLInt(xmlFile, base .. "#id", e.id)
         setXMLString(xmlFile, base .. "#name", e.name)
+        setXMLBool(xmlFile, base .. "#isHired", e.isHired)
+        setXMLFloat(xmlFile, base .. "#workTime", e.workTime)
+        setXMLFloat(xmlFile, base .. "#kmDriven", e.kmDriven)
 
         setXMLInt(xmlFile, base .. ".skills#driving", e.skills.driving)
         setXMLInt(xmlFile, base .. ".skills#harvesting", e.skills.harvesting)
@@ -75,12 +116,15 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
                 setXMLInt(xmlFile, base .. ".currentJob#fieldId", e.currentJob.fieldId)
             end
         end
-        setXMLBool(xmlFile, base .. "#isRenting", e.isRenting)
     end
     return true
 end
 
 function EmployeeManager:loadFromXMLFile(xmlFile, key)
+    EmployeeUtils.debugPrint("[EmployeeManager] loadFromXMLFile()")
+    -- Clear existing employees before loading
+    self.employees = {}
+
     local empKey = key .. ".employees"
     local i = 0
     while true do
@@ -93,7 +137,11 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         local driving = Utils.getNoNil(getXMLInt(xmlFile, base .. ".skills#driving"), 1)
         local harvesting = Utils.getNoNil(getXMLInt(xmlFile, base .. ".skills#harvesting"), 1)
         local technical = Utils.getNoNil(getXMLInt(xmlFile, base .. ".skills#technical"), 1)
+        
         local emp = Employee.new(id, name, { driving = driving, harvesting = harvesting, technical = technical })
+        emp.isHired = Utils.getNoNil(getXMLBool(xmlFile, base .. "#isHired"), true) -- Assume loaded employees are hired
+        emp.workTime = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#workTime"), 0)
+        emp.kmDriven = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#kmDriven"), 0)
 
         local jobType = getXMLString(xmlFile, base .. ".currentJob#jobType")
         local fieldId = getXMLInt(xmlFile, base .. ".currentJob#fieldId")
@@ -101,21 +149,21 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
             emp.currentJob = { jobType = jobType }
             if fieldId ~= nil then emp.currentJob.fieldId = fieldId end
         end
-        emp.isRenting = Utils.getNoNil(getXMLBool(xmlFile, base .. "#isRenting"), false)
         table.insert(self.employees, emp)
         i = i + 1
     end
-    EmployeeUtils.debugPrint(string.format("--- Loaded %d employees from savegame ---", #self.employees))
     
-    if #self.employees == 0 then
-        EmployeeUtils.debugPrint("--- No employees found in savegame, generating 5 random employees. ---")
-        for i = 1, 5 do
+    -- Generate available employees pool
+    local numToGenerate = 10 - #self.employees
+    if numToGenerate > 0 then
+        for i = 1, numToGenerate do
             self:generateRandomEmployee()
         end
     end
 end
 
 function EmployeeManager:writeStream(streamId, connection)
+    EmployeeUtils.debugPrint("[EmployeeManager] writeStream()")
     streamWriteInt32(streamId, #self.employees)
     for _, employee in ipairs(self.employees) do
         employee:writeStream(streamId, connection)
@@ -123,6 +171,7 @@ function EmployeeManager:writeStream(streamId, connection)
 end
 
 function EmployeeManager:readStream(streamId, connection)
+    EmployeeUtils.debugPrint("[EmployeeManager] readStream()")
     local numEmployees = streamReadInt32(streamId)
     self.employees = {}
     for _ = 1, numEmployees do

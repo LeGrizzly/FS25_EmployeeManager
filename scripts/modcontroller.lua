@@ -4,7 +4,14 @@ ModController = {}
 ModController.name = g_currentModName
 ModController.path = g_currentModDirectory
 ModController.globalKey = "EMPLOYEE_MANAGER_CONTROLLER"
-ModController.version = g_modManager:getModByName(g_currentModName).version
+
+local mod = g_modManager:getModByName(g_currentModName)
+if mod ~= nil then
+    ModController.version = mod.version
+else
+    ModController.version = "UNKNOWN"
+    Logging.warning("[ModController] Could not get mod info for '%s'", g_currentModName)
+end
 
 ModController.isInitialized = false
 
@@ -30,7 +37,6 @@ function ModController:loadMap()
 end
 
 function ModController:deleteMap()
-    -- Placeholder for any cleanup logic needed when the map is unloaded.
 end
 
 function ModController:keyEvent(unicode, sym, modifier, isDown)
