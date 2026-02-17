@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<l10n>
+	<translationContributors>LeGrizzly</translationContributors>
+	<texts>
+		<text name="UNKNOWN" text="Inconnu" />
+		<text name="input_SHOW_EMPLOYEE_MENU" text="Afficher le menu des employés" />
+		<text name="EM_employee_management" text="Gestion des Employés" />
+
+		<!-- Employee Manager translations (from modDesc.xml) -->
+		<text name="em_skill_driving" text="Driving" />
+		<text name="em_skill_harvesting" text="Harvesting" />
+		<text name="em_skill_technical" text="Technical" />
+		<text name="em_assigned_vehicle" text="Assigned Vehicle" />
+		<text name="em_current_job" text="Current Job" />
+		<text name="em_status_available" text="Available" />
+		<text name="em_status_working" text="Working" />
+		<text name="em_action_hire" text="Hire" />
+		<text name="em_action_fire" text="Fire" />
+		<text name="em_action_assign_vehicle" text="Assign Vehicle" />
+		<text name="em_action_assign_job" text="Assign Job" />
+	</texts>
+</l10n>

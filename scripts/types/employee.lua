@@ -21,6 +21,10 @@ function Employee:unassignVehicle()
     self.assignedVehicle = nil
 end
 
+function Employee:getFullName()
+    return self.name
+end
+
 function Employee:setJob(jobTable)
     self.currentJob = jobTable
 end
