@@ -1,11 +1,12 @@
 ---@class ModGui
 ModGui = {}
 
-ModGui.TEXTURE_CONFIG_FILENAME = g_modDirectory .. 'textures/ui_elements.xml'
+-- ModGui.TEXTURE_CONFIG_FILENAME = g_modDirectory .. 'textures/ui_elements.xml'
 
 local ModGui_mt = Class(ModGui)
 
 function ModGui.new()
+    Logging.info("[ModGui] new()")
     local self = setmetatable({}, ModGui_mt)
 
     if g_client ~= nil then
@@ -21,9 +22,12 @@ function ModGui:load()
         return
     end
 
+    -- Load GUI Profiles
+    g_gui:loadProfiles(g_modDirectory .. "xml/gui/guiProfiles.xml")
+
     -- Load the Employee Manager in-game menu frame
-    if not self:loadMenuFrame(InGameMenuEmployeeManagerFrame) then
-        Logging.warning('[EmployeeManager] ModGui:load() InGameMenuEmployeeManagerFrame already loaded')
+    if not self:loadMenuFrame(MenuEmployeeManager) then
+        Logging.warning('[EmployeeManager] ModGui:load() MenuEmployeeManager already loaded')
     end
 end
 
@@ -51,6 +55,10 @@ function ModGui:loadMenuFrame(class)
     g_inGameMenu.pagingElement:addElement(pageController)
     g_inGameMenu:registerPage(pageController, nil, function() return true end)
     g_inGameMenu:addPageTab(pageController, nil, nil, class.MENU_ICON_SLICE_ID)
+
+    if pageController.initialize ~= nil then
+        pageController:initialize()
+    end
 
     self[pageName] = pageController
 
@@ -107,13 +115,13 @@ function ModGui:consoleReloadFrames()
     if g_server ~= nil and not g_currentMission.missionDynamicInfo.isMultiplayer then
         g_gui:showGui("InGameMenu")
 
-        if self:deleteMenuFrame(InGameMenuEmployeeManagerFrame) then
+        if self:deleteMenuFrame(MenuEmployeeManager) then
             g_gui.currentlyReloading = true
-            self:loadMenuFrame(InGameMenuEmployeeManagerFrame)
+            self:loadMenuFrame(MenuEmployeeManager)
             g_gui.currentlyReloading = false
             g_inGameMenu:rebuildTabList()
             g_inGameMenu.pagingElement:updatePageMapping()
-            return 'Reloaded InGameMenuEmployeeManagerFrame'
+            return 'Reloaded MenuEmployeeManager'
         end
     end
 
