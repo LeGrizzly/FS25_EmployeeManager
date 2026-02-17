@@ -1,31 +1,14 @@
 EmployeeUtils = {}
 
-EmployeeUtils.showDebug = false
+EmployeeUtils.showDebug = true
 
-function EmployeeUtils.debugPrint(a, b, c)
-    local tag, message, force = nil, nil, false
-    if b == nil then
-        message = a
-        force = c or false
-    else
-        tag = a
-        message = b
-        force = c or false
-    end
-
-    local enabled = EmployeeUtils.showDebug
-    if not enabled and rawget(_G, "EmployeeManagerRegister") ~= nil then
-        enabled = EmployeeManagerRegister.showDebug or EmployeeManagerRegister.showLoading or enabled
-    end
-    if not enabled and not force then
+function EmployeeUtils.debugPrint(message)
+    if not EmployeeUtils.showDebug then
         return
     end
 
-    if tag then
-        print('['..tostring(tag)..'] '..tostring(message))
-    else
-        print(tostring(message))
-    end
+    local msg = tostring(message or "")
+    print(string.format('[%s] %s', g_modName, msg))
 end
 
 return EmployeeUtils

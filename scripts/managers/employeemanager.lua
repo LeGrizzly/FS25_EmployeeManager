@@ -6,20 +6,18 @@ function EmployeeManager:new(mission)
     local self = setmetatable({}, EmployeeManager_mt)
     self.mission = mission
     self.employees = {}
+    self.firstNames = {"John", "Peter", "Mike", "David", "Chris", "Paul", "Mark", "James", "Andrew", "Daniel"}
+    self.lastNames = {"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"}
     return self
 end
 
-function EmployeeManager:loadMap(name)
-    EmployeeUtils.debugPrint("--- Mod Chargé ! ---")
-    
-    self.employeeMenu = EmployeeMenu.new()
-    local guiPath = Utils.getFilename("gui/employeeMenu.xml", g_currentModDirectory)
-    EmployeeUtils.debugPrint(string.format("EmployeeManager: loading GUI from '%s'", tostring(guiPath)))
-    g_gui:loadGui(guiPath, "EmployeeMenu", self.employeeMenu)
+function EmployeeManager:onMissionInitialize(baseDirectory)
+    EmployeeUtils.debugPrint("--- Mission Initializing! ---")
+    print("[FS25_EmployeeManager] EmployeeManager: Mission initialized with base directory: " .. tostring(baseDirectory))
 end
 
-function EmployeeManager:onMissionInitialize(baseDirectory)
-    EmployeeUtils.debugPrint("--- Initialisation de la mission ! ---")
+function EmployeeManager:getEmployees()
+    return self.employees
 end
 
 function EmployeeManager:hireEmployee(name, skills)
@@ -31,7 +29,8 @@ function EmployeeManager:hireEmployee(name, skills)
     end
     local emp = Employee.new(id, name, skills)
     table.insert(self.employees, emp)
-    EmployeeUtils.debugPrint(string.format("--- Employé embauché id=%d name=%s ---", emp.id, emp.name))
+    EmployeeUtils.debugPrint(string.format("--- Hired employee id=%d name=%s ---", emp.id, emp.name))
+    g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
     return emp
 end
 
@@ -39,11 +38,25 @@ function EmployeeManager:fireEmployee(id)
     for idx, e in ipairs(self.employees) do
         if e.id == id then
             table.remove(self.employees, idx)
-            EmployeeUtils.debugPrint(string.format("--- Employé viré id=%d ---", id))
+            EmployeeUtils.debugPrint(string.format("--- Fired employee id=%d ---", id))
+            g_messageCenter:publish(MessageType.EMPLOYEE_REMOVED)
             return true
         end
     end
     return false
+end
+
+function EmployeeManager:generateRandomEmployee()
+    math.randomseed(g_currentMission.time + math.random(1, 1000))
+    local firstName = self.firstNames[math.random(#self.firstNames)]
+    local lastName = self.lastNames[math.random(#self.lastNames)]
+    local name = firstName .. " " .. lastName
+    local skills = {
+        driving = math.random(1, 5),
+        harvesting = math.random(1, 5),
+        technical = math.random(1, 5)
+    }
+    self:hireEmployee(name, skills)
 end
 
 function EmployeeManager:saveToXMLFile(xmlFile, key)
@@ -92,5 +105,29 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         table.insert(self.employees, emp)
         i = i + 1
     end
-    EmployeeUtils.debugPrint(string.format("--- Chargé %d employés depuis le savegame ---", #self.employees))
+    EmployeeUtils.debugPrint(string.format("--- Loaded %d employees from savegame ---", #self.employees))
+    
+    if #self.employees == 0 then
+        EmployeeUtils.debugPrint("--- No employees found in savegame, generating 5 random employees. ---")
+        for i = 1, 5 do
+            self:generateRandomEmployee()
+        end
+    end
+end
+
+function EmployeeManager:writeStream(streamId, connection)
+    streamWriteInt32(streamId, #self.employees)
+    for _, employee in ipairs(self.employees) do
+        employee:writeStream(streamId, connection)
+    end
+end
+
+function EmployeeManager:readStream(streamId, connection)
+    local numEmployees = streamReadInt32(streamId)
+    self.employees = {}
+    for _ = 1, numEmployees do
+        local employee = Employee.new(0, "", {})
+        employee:readStream(streamId, connection)
+        table.insert(self.employees, employee)
+    end
 end
