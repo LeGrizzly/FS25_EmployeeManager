@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<l10n>
+	<translationContributors>FirenzeIT</translationContributors>
+	<texts>
+		<text name="UNKNOWN" text="Sconosciuto" />
+		<text name="input_SHOW_EMPLOYEE_MENU" text="Mostra il menu dipendenti" />
+		<text name="EM_employee_management" text="Gestione dipendenti" />
+
+		<!-- Traduzioni Employee Manager (da modDesc.xml) -->
+		<text name="em_skill_driving" text="Guida" />
+		<text name="em_skill_harvesting" text="Raccolta" />
+		<text name="em_skill_technical" text="Tecnica" />
+		<text name="em_assigned_vehicle" text="Veicolo assegnato" />
+		<text name="em_current_job" text="Lavoro attuale" />
+		<text name="em_status_available" text="Disponibile" />
+		<text name="em_status_working" text="Al lavoro" />
+		<text name="em_action_hire" text="Assumi" />
+		<text name="em_action_fire" text="Licenzia" />
+		<text name="em_action_assign_vehicle" text="Assegna veicolo" />
+		<text name="em_action_assign_job" text="Assegna lavoro" />
+	</texts>
+</l10n>
