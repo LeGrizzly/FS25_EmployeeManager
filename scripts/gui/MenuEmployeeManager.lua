@@ -15,7 +15,7 @@ MenuEmployeeManager.LIST_STATE_TEXTS = { "em_list_new", "em_list_active", "em_li
 MenuEmployeeManager.HEADER_TITLE = "em_header_employees"
 
 function MenuEmployeeManager.new(i18n, messageCenter)
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] new()")
+    CustomUtils:debug("[MenuEmployeeManager] new()")
     local self = MenuEmployeeManager:superClass().new(nil, MenuEmployeeManager._mt)
     self.name = "MenuEmployeeManager"
     self.className = "MenuEmployeeManager" -- For identifying in renderer
@@ -27,7 +27,7 @@ function MenuEmployeeManager.new(i18n, messageCenter)
 end
 
 function MenuEmployeeManager:displaySelectedEmployee()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] displaySelectedEmployee()")
+    CustomUtils:debug("[MenuEmployeeManager] displaySelectedEmployee()")
     local index = self.employeesTable.selectedIndex
     if index == -1 or index == 0 then
         self.employeeInfoContainer:setVisible(false)
@@ -54,19 +54,19 @@ function MenuEmployeeManager:displaySelectedEmployee()
 end
 
 function MenuEmployeeManager:onGuiSetupFinished()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onGuiSetupFinished()")
+    CustomUtils:debug("[MenuEmployeeManager] onGuiSetupFinished()")
     MenuEmployeeManager:superClass().onGuiSetupFinished(self)
     self.employeesTable:setDataSource(self.employeeRenderer)
     self.employeesTable:setDelegate(self.employeeRenderer)
     self.employeeRenderer.indexChangedCallback = function(index)
-        EmployeeUtils.debugPrint("[MenuEmployeeManager] onGuiSetupFinished() -> indexChangedCallback()")
+        CustomUtils:debug("[MenuEmployeeManager] onGuiSetupFinished() -> indexChangedCallback()")
         self:displaySelectedEmployee()
         self:updateMenuButtons()
     end
 end
 
 function MenuEmployeeManager:initialize()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] initialize()")
+    CustomUtils:debug("[MenuEmployeeManager] initialize()")
     MenuEmployeeManager:superClass().initialize(self)
     local employeeSwitcherTexts = {}
     for _, textKey in ipairs(MenuEmployeeManager.LIST_STATE_TEXTS) do
@@ -96,12 +96,12 @@ function MenuEmployeeManager:initialize()
 end
 
 function MenuEmployeeManager:getMenuButtonInfo()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] getMenuButtonInfo()")
+    CustomUtils:debug("[MenuEmployeeManager] getMenuButtonInfo()")
     return self.menuButtonInfo.employees or { self.btnBack }
 end
 
 function MenuEmployeeManager:onFrameOpen()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onFrameOpen()")
+    CustomUtils:debug("[MenuEmployeeManager] onFrameOpen()")
     MenuEmployeeManager:superClass().onFrameOpen(self)
     self:onMoneyChange()
     g_messageCenter:subscribe(MessageType.MONEY_CHANGED, self.onMoneyChange, self)
@@ -111,23 +111,23 @@ function MenuEmployeeManager:onFrameOpen()
 end
 
 function MenuEmployeeManager:onFrameClose()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onFrameClose()")
+    CustomUtils:debug("[MenuEmployeeManager] onFrameClose()")
     MenuEmployeeManager:superClass().onFrameClose(self)
     g_messageCenter:unsubscribeAll(self)
 end
 
 function MenuEmployeeManager:onSwitchEmployeeDisplay()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onSwitchEmployeeDisplay()")
+    CustomUtils:debug("[MenuEmployeeManager] onSwitchEmployeeDisplay()")
     self.currentEmployeeListType = self.employeeDisplaySwitcher:getState()
     self:updateContent()
 end
 
 function MenuEmployeeManager:updateContent()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] updateContent()")
+    CustomUtils:debug("[MenuEmployeeManager] updateContent()")
     self.categoryHeaderText:setText(g_i18n:getText(MenuEmployeeManager.HEADER_TITLE))
 
     if g_employeeManager == nil then
-        Logging.warning("[MenuEmployeeManager] g_employeeManager is nil. No data to display.")
+        CustomUtils:error("[MenuEmployeeManager] g_employeeManager is nil. No data to display.")
         self.employeeRenderer:setData({
             [MenuEmployeeManager.LIST_TYPE.NEW] = {},
             [MenuEmployeeManager.LIST_TYPE.ACTIVE] = {},
@@ -143,11 +143,11 @@ function MenuEmployeeManager:updateContent()
     local available = g_employeeManager:getAvailableEmployees()
     local hired = g_employeeManager:getHiredEmployees()
     
-    print("--- Available Employees ---")
+    CustomUtils:debug("--- Available Employees ---")
     for _, e in ipairs(available) do
-        print(string.format("ID: %d, Name: %s, Daily Wage: %d", e.id, e.name, e:getDailyWage()))
+        CustomUtils:debug("ID: %d, Name: %s, Daily Wage: %d", e.id, e.name, e:getDailyWage())
     end
-    print("---------------------------")
+    CustomUtils:debug("---------------------------")
 
     local active = {}
     for _, e in ipairs(hired) do
@@ -176,7 +176,7 @@ function MenuEmployeeManager:updateContent()
 end
 
 function MenuEmployeeManager:updateMenuButtons()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] updateMenuButtons()")
+    CustomUtils:debug("[MenuEmployeeManager] updateMenuButtons()")
 
     -- Guard against being called before fully initialized
     if self.employeeButtonSets == nil or self.menuButtonInfo == nil then
@@ -197,7 +197,7 @@ function MenuEmployeeManager:updateMenuButtons()
 end
 
 function MenuEmployeeManager:getSelectedEmployee()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] getSelectedEmployee()")
+    CustomUtils:debug("[MenuEmployeeManager] getSelectedEmployee()")
     local index = self.employeesTable.selectedIndex
     if index == nil or index < 1 then return nil end
     local selection = self.employeeDisplaySwitcher:getState()
@@ -207,13 +207,13 @@ function MenuEmployeeManager:getSelectedEmployee()
 end
 
 function MenuEmployeeManager:shouldShowButton(button, listType, employee)
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] shouldShowButton()")
+    CustomUtils:debug("[MenuEmployeeManager] shouldShowButton()")
     if button == self.btnBack then return true end
     return employee ~= nil
 end
 
 function MenuEmployeeManager:onMoneyChange()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onMoneyChange()")
+    CustomUtils:debug("[MenuEmployeeManager] onMoneyChange()")
     if g_localPlayer ~= nil then
         local farm = g_farmManager:getFarmById(g_localPlayer.farmId)
         self.currentBalanceText:applyProfile(farm.money <= -1 and ShopMenu.GUI_PROFILE.SHOP_MONEY_NEGATIVE or ShopMenu.GUI_PROFILE.SHOP_MONEY, nil, true)
@@ -226,21 +226,21 @@ function MenuEmployeeManager:onMoneyChange()
 end
 
 function MenuEmployeeManager:onHireEmployee()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onHireEmployee()")
+    CustomUtils:debug("[MenuEmployeeManager] onHireEmployee()")
     local employee = self:getSelectedEmployee()
     if employee == nil then return end
     YesNoDialog.show(function(_, yes) if yes then g_employeeManager:hireEmployee(employee.id) self:updateContent() end end, self, string.format(g_i18n:getText("em_dialog_hire_yes_no"), employee.name), g_i18n:getText("em_dialog_hire_yes_no_btn"))
 end
 
 function MenuEmployeeManager:onFireEmployee()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onFireEmployee()")
+    CustomUtils:debug("[MenuEmployeeManager] onFireEmployee()")
     local employee = self:getSelectedEmployee()
     if employee == nil then return end
     YesNoDialog.show(function(_, yes) if yes then g_employeeManager:fireEmployee(employee.id) self:updateContent() end end, self, string.format(g_i18n:getText("em_dialog_fire_yes_no"), employee.name), g_i18n:getText("em_dialog_fire_yes_no_btn"))
 end
 
 function MenuEmployeeManager:onAssignVehicle()
-    EmployeeUtils.debugPrint("[MenuEmployeeManager] onAssignVehicle()")
+    CustomUtils:debug("[MenuEmployeeManager] onAssignVehicle()")
     local employee = self:getSelectedEmployee()
     if employee == nil then return end
     InfoDialog.show(string.format("Assign vehicle to %s (Not Implemented)", employee.name))

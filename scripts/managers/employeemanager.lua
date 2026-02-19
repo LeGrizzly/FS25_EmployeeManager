@@ -3,7 +3,7 @@ EmployeeManager = {}
 local EmployeeManager_mt = Class(EmployeeManager)
 
 function EmployeeManager:new(mission)
-    EmployeeUtils.debugPrint("[EmployeeManager] new()")
+    CustomUtils:debug("[EmployeeManager] new()")
     local self = setmetatable({}, EmployeeManager_mt)
     self.mission = mission
     self.employees = {}
@@ -13,12 +13,12 @@ function EmployeeManager:new(mission)
 end
 
 function EmployeeManager:onMissionInitialize(baseDirectory)
-    EmployeeUtils.debugPrint("--- Mission Initializing! ---")
-    EmployeeUtils.debugPrint("[FS25_EmployeeManager] EmployeeManager: Mission initialized with base directory: " .. tostring(baseDirectory))
+    CustomUtils:debug("--- Mission Initializing! ---")
+    CustomUtils:debug("[FS25_EmployeeManager] EmployeeManager: Mission initialized with base directory: " .. tostring(baseDirectory))
 end
 
 function EmployeeManager:getHiredEmployees()
-    EmployeeUtils.debugPrint("[EmployeeManager] getHiredEmployees()")
+    CustomUtils:debug("[EmployeeManager] getHiredEmployees()")
     local hired = {}
     for _, e in ipairs(self.employees) do
         if e.isHired then
@@ -29,7 +29,7 @@ function EmployeeManager:getHiredEmployees()
 end
 
 function EmployeeManager:getAvailableEmployees()
-    EmployeeUtils.debugPrint("[EmployeeManager] getAvailableEmployees()")
+    CustomUtils:debug("[EmployeeManager] getAvailableEmployees()")
     local available = {}
     for _, e in ipairs(self.employees) do
         if not e.isHired then
@@ -40,7 +40,7 @@ function EmployeeManager:getAvailableEmployees()
 end
 
 function EmployeeManager:hireEmployee(id)
-    EmployeeUtils.debugPrint("[EmployeeManager] hireEmployee(id: %s)", tostring(id))
+    CustomUtils:debug("[EmployeeManager] hireEmployee(id: %s)", tostring(id))
     for _, e in ipairs(self.employees) do
         if e.id == id then
             e.isHired = true
@@ -52,7 +52,7 @@ function EmployeeManager:hireEmployee(id)
 end
 
 function EmployeeManager:fireEmployee(id)
-    EmployeeUtils.debugPrint("[EmployeeManager] fireEmployee(id: %s)", tostring(id))
+    CustomUtils:debug("[EmployeeManager] fireEmployee(id: %s)", tostring(id))
     for _, e in ipairs(self.employees) do
         if e.id == id then
             e.isHired = false
@@ -68,7 +68,7 @@ function EmployeeManager:fireEmployee(id)
 end
 
 function EmployeeManager:generateRandomEmployee()
-    EmployeeUtils.debugPrint("[EmployeeManager] generateRandomEmployee()")
+    CustomUtils:debug("[EmployeeManager] generateRandomEmployee()")
     math.randomseed(g_currentMission.time + math.random(1, 1000))
     local firstName = self.firstNames[math.random(#self.firstNames)]
     local lastName = self.lastNames[math.random(#self.lastNames)]
@@ -96,7 +96,7 @@ function EmployeeManager:getEmployeeById(id)
 end
 
 function EmployeeManager:saveToXMLFile(xmlFile, key)
-    EmployeeUtils.debugPrint("[EmployeeManager] saveToXMLFile()")
+    CustomUtils:debug("[EmployeeManager] saveToXMLFile()")
     local hiredEmployees = self:getHiredEmployees()
     local empKey = key .. ".employees"
     for i, e in ipairs(hiredEmployees) do
@@ -121,7 +121,7 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
 end
 
 function EmployeeManager:loadFromXMLFile(xmlFile, key)
-    EmployeeUtils.debugPrint("[EmployeeManager] loadFromXMLFile()")
+    CustomUtils:debug("[EmployeeManager] loadFromXMLFile()")
     -- Clear existing employees before loading
     self.employees = {}
 
@@ -163,7 +163,7 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
 end
 
 function EmployeeManager:writeStream(streamId, connection)
-    EmployeeUtils.debugPrint("[EmployeeManager] writeStream()")
+    CustomUtils:debug("[EmployeeManager] writeStream()")
     streamWriteInt32(streamId, #self.employees)
     for _, employee in ipairs(self.employees) do
         employee:writeStream(streamId, connection)
@@ -171,7 +171,7 @@ function EmployeeManager:writeStream(streamId, connection)
 end
 
 function EmployeeManager:readStream(streamId, connection)
-    EmployeeUtils.debugPrint("[EmployeeManager] readStream()")
+    CustomUtils:debug("[EmployeeManager] readStream()")
     local numEmployees = streamReadInt32(streamId)
     self.employees = {}
     for _ = 1, numEmployees do

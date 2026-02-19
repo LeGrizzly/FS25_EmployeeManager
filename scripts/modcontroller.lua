@@ -10,18 +10,18 @@ if mod ~= nil then
     ModController.version = mod.version
 else
     ModController.version = "UNKNOWN"
-    Logging.warning("[ModController] Could not get mod info for '%s'", g_currentModName)
+    CustomUtils:error("[ModController] Could not get mod info for '%s'", g_currentModName)
 end
 
 ModController.isInitialized = false
 
 ---@param self nil
 function ModController:loadMap()
-    Logging.info("[%s] Loaded mod version %s", self.name, tostring(self.version))
+    CustomUtils:info("[%s] Loaded mod version %s", self.name, tostring(self.version))
 
     self.isInitialized = true
 
-    print("[FS25_EmployeeManager] Initializing Employee Manager Mod...")
+    CustomUtils:info("Initializing Employee Manager Mod...")
 
     g_employeeManager = EmployeeManager:new(g_currentMission)
 
