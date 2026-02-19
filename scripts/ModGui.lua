@@ -1,12 +1,89 @@
 ---@class ModGui
 ModGui = {}
 
--- ModGui.TEXTURE_CONFIG_FILENAME = g_modDirectory .. 'textures/ui_elements.xml'
-
 local ModGui_mt = Class(ModGui)
 
+local function addIngameMenuPage(frame, pageName, iconPath, uvs, position, predicateFunc)
+    local targetPosition = 0
+    local inGameMenu = g_gui.screenControllers[InGameMenu]
+    if inGameMenu == nil then
+        Logging.warning("addIngameMenuPage: InGameMenu not found.")
+        return
+    end
+
+    if inGameMenu.pagingElement == nil or inGameMenu.pagingElement.elements == nil or inGameMenu.pagingElement.pages == nil or inGameMenu.pageFrames == nil then
+        Logging.warning("addIngameMenuPage: InGameMenu is not fully initialized.")
+        return
+    end
+
+    for k, v in pairs({ pageName }) do
+        g_inGameMenu.controlIDs[v] = nil
+    end
+
+    if type(position) == "string" then
+        for i = 1, #g_inGameMenu.pagingElement.elements do
+            local child = g_inGameMenu.pagingElement.elements[i]
+            if child == g_inGameMenu[position] then
+                targetPosition = i + 1;
+                break
+            end
+        end
+    elseif type(position) == "number" then
+        targetPosition = position
+    else
+        Logging.warning("addIngameMenuPage: Invalid position type. Must be string or number.")
+        return
+    end
+
+    inGameMenu[pageName] = frame
+    inGameMenu.pagingElement:addElement(inGameMenu[pageName])
+
+    inGameMenu:exposeControlsAsFields(pageName)
+
+    if position ~= nil then
+        for i = #inGameMenu.pagingElement.elements, 1, -1 do
+            local child = inGameMenu.pagingElement.elements[i]
+            if child == inGameMenu[pageName] then
+                table.remove(inGameMenu.pagingElement.elements, i)
+                table.insert(inGameMenu.pagingElement.elements, targetPosition, child)
+                break
+            end
+        end
+
+        for i = #inGameMenu.pagingElement.pages, 1, -1 do
+            local child = inGameMenu.pagingElement.pages[i]
+            if child.element == inGameMenu[pageName] then
+                table.remove(inGameMenu.pagingElement.pages, i)
+                table.insert(inGameMenu.pagingElement.pages, targetPosition, child)
+                break
+            end
+        end
+    end
+
+    inGameMenu.pagingElement:updateAbsolutePosition()
+    inGameMenu.pagingElement:updatePageMapping()
+
+    inGameMenu:registerPage(inGameMenu[pageName], nil, predicateFunc)
+
+    local iconFileName = Utils.getFilename(iconPath, g_modDirectory)
+    inGameMenu:addPageTab(inGameMenu[pageName], iconFileName, GuiUtils.getUVs(uvs))
+
+    if position ~= nil then
+        for i = 1, #g_inGameMenu.pageFrames do
+            local child = inGameMenu.pageFrames[i]
+            if child == inGameMenu[pageName] then
+                table.remove(inGameMenu.pageFrames, i)
+                table.insert(inGameMenu.pageFrames, targetPosition, child)
+                break
+            end
+        end
+    end
+
+    inGameMenu:rebuildTabList()
+end
+
 function ModGui.new()
-    Logging.info("[ModGui] new()")
+    CustomUtils:info("[ModGui] new()")
     local self = setmetatable({}, ModGui_mt)
 
     if g_client ~= nil then
@@ -22,12 +99,10 @@ function ModGui:load()
         return
     end
 
-    -- Load GUI Profiles
     g_gui:loadProfiles(g_modDirectory .. "xml/gui/guiProfiles.xml")
 
-    -- Load the Employee Manager in-game menu frame
     if not self:loadMenuFrame(MenuEmployeeManager) then
-        Logging.warning('[EmployeeManager] ModGui:load() MenuEmployeeManager already loaded')
+        CustomUtils:debug('[EmployeeManager] ModGui:load() MenuEmployeeManager already loaded')
     end
 end
 
@@ -45,25 +120,24 @@ function ModGui:loadMenuFrame(class)
 
     if g_gui == nil or g_inGameMenu == nil then
         -- If global menu references are not yet available, delay loading.
-        Logging.info('[EmployeeManager] g_gui or g_inGameMenu not ready, deferring menu load')
+        CustomUtils:info('[EmployeeManager] g_gui or g_inGameMenu not ready, deferring menu load')
         return false
     end
 
     g_gui:loadGui(class.XML_FILENAME, class.CLASS_NAME, pageController, true)
 
-    g_inGameMenu[pageName] = pageController
-    g_inGameMenu.pagingElement:addElement(pageController)
-    g_inGameMenu:registerPage(pageController, nil, function() return true end)
-    g_inGameMenu:addPageTab(pageController, nil, nil, class.MENU_ICON_SLICE_ID)
+    local iconPath = 'images/MenuIcon.dds'
+    local uvs = {0, 0, 1024, 1024}
+    -- local position = 4
+    local position = "pageSettings"
+    local predicate = function() return true end
+    addIngameMenuPage(pageController, pageName, iconPath, uvs, position, predicate)
 
     if pageController.initialize ~= nil then
         pageController:initialize()
     end
 
     self[pageName] = pageController
-
-    pageController:updateAbsolutePosition()
-    g_inGameMenu.pagingTabList:reloadData()
 
     return true
 end
@@ -93,7 +167,6 @@ end
 
 function ModGui:onMapLoaded()
     if g_client ~= nil then
-        -- ensure tab list alignment is reasonable
         if g_inGameMenu ~= nil and g_inGameMenu.pagingTabList ~= nil then
             g_inGameMenu.pagingTabList.listItemAlignment = SmoothListElement.ALIGN_START
         end

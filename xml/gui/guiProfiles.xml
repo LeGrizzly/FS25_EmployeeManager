@@ -40,25 +40,25 @@
 
   <Profile name="EM_InfoLabel" extends="fs25_textDefault" with="anchorTopLeft">
     <textSize value="18px"/>
-    <textColor value="$preset_fs25_colorMainDefault"/>
+    <textColor value="$preset_fs25_colorWhite"/>
     <position value="0px -10px"/>
     <textAlignment value="left"/>
     <textUpperCase value="true"/>
   </Profile>
   
   <Profile name="EM_InfoValue" extends="fs25_textDefault" with="anchorTopRight">
-     <textSize value="24px"/>
-     <textBold value="false"/>
-     <textColor value="$preset_fs25_colorMainDefault"/>
-     <textAlignment value="right"/>
-     <textUpperCase value="true"/>
+    <textSize value="24px"/>
+    <textBold value="false"/>
+    <textColor value="$preset_fs25_colorWhite"/>
+    <textAlignment value="right"/>
+    <textUpperCase value="true"/>
   </Profile>
 
   <Profile name="EM_SectionTitle" extends="fs25_textDefault" with="anchorTopLeft">
     <textSize value="14px"/>
     <textBold value="true"/>
     <textUpperCase value="true"/>
-    <textColor value="$preset_fs25_colorMainDefault"/>
+    <textColor value="$preset_fs25_colorWhite"/>
     <textAlignment value="left"/>
   </Profile>
 

@@ -11,7 +11,7 @@
         <fr><![CDATA[Apportez un nouveau niveau de profondeur à votre main-d'œuvre agricole. Embauchez et gérez des employés dotés de compétences uniques pour optimiser vos opérations.]]></fr>
     </description>
 
-    <iconFilename>icon_temporary.dds</iconFilename>
+    <iconFilename>images/employee_icon.dds</iconFilename>
 
     <multiplayer supported="false" />
 
