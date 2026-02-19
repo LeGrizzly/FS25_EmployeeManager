@@ -1,57 +1,58 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <GUI name="menuEmployeeManager">
-  <GuiElement profile="fs25_menuContainer">
-    <GuiElement profile="fs25_menuHeaderPanel">
-      <Bitmap profile="fs25_menuHeaderIconBg">
-        <Bitmap profile="fs25_inGameMenuIcon" image="$data/menu/ingameMenu/tab_operator.dds" id="categoryHeaderIcon" />
-      </Bitmap>
-      <Text profile="fs25_menuHeaderTitle" id="categoryHeaderText"/>
-      <RoundCorner profile="fs25_shopMoneyBoxBg" id="shopMoneyBoxBg"/>
-      <BoxLayout profile="fs25_shopMoneyBox" id="shopMoneyBox">
-        <Text profile="fs25_shopBalance" text="$l10n_em_current_balance"/>
-        <Text profile="fs25_shopMoney" id="currentBalanceText"/>
-      </BoxLayout>
-    </GuiElement>
+    <GuiElement profile="fs25_menuContainer">
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <!-- <Bitmap profile="fs25_inGameMenuIcon" image="$data/menu/ingameMenu/tab_operator.dds" id="categoryHeaderIcon" position="10px 0px"/> -->
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" id="categoryHeaderText"/>
+            <RoundCorner profile="fs25_shopMoneyBoxBg" id="shopMoneyBoxBg"/>
+            <BoxLayout profile="fs25_shopMoneyBox" id="shopMoneyBox">
+                <Text profile="fs25_shopBalance" text="$l10n_em_current_balance"/>
+                <Text profile="fs25_shopMoney" id="currentBalanceText"/>
+            </BoxLayout>
+        </GuiElement>
 
-    <GuiElement profile="fs25_subCategorySelectorTabbedContainer" position="0px -77px">
-        <ThreePartBitmap profile="fs25_primaryMenuContainerBg">
-          <Bitmap profile="fs25_menuContainerArrow"/>
-          <GuiElement profile="fs25_subCategoryContainer">
-            <MultiTextOption profile="EM_FilterSwitcher" id="employeeDisplaySwitcher" onClick="onSwitchEmployeeDisplay" size="380px 32px" position="20px -40px"/>
-            <GuiElement profile="fs25_subCategoryListContainer" id="employeesContainer">
-              <Bitmap profile="fs25_subCategoryStartClipper" name="startClipper"/>
-              <Bitmap profile="fs25_subCategoryStopClipper" name="endClipper"/>
-              <SmoothList id="employeesTable" profile="EM_List" startClipperElementName="startClipper" endClipperElementName="endClipper">
-                <ListItem profile="EM_ListItem">
-                  <Bitmap profile="fs25_subCategoryListItemIcon" name="employeeIcon"/>
-                  <Text profile="EM_ListItemTitle" name="name"/>
-                  <Text profile="EM_ListItemInfo" name="wage"/>
-                </ListItem>
-              </SmoothList>
-              <ThreePartBitmap profile="fs25_subCategoryListSliderBox">
-                <Slider profile="fs25_listSlider" dataElementId="employeesTable" />
-              </ThreePartBitmap>
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" position="0px 0px">
+            <ThreePartBitmap profile="fs25_primaryMenuContainerBg">
+                <Bitmap profile="fs25_menuContainerArrow"/>
+                <GuiElement profile="fs25_subCategoryContainer">
+                    <MultiTextOption profile="EM_FilterSwitcher" id="employeeDisplaySwitcher" onClick="onSwitchEmployeeDisplay" size="380px 32px" position="20px -40px"/>
+                    <GuiElement profile="fs25_subCategoryListContainer" id="employeesContainer">
+                        <Bitmap profile="fs25_subCategoryStartClipper" name="startClipper"/>
+                        <Bitmap profile="fs25_subCategoryStopClipper" name="endClipper"/>
+                        <SmoothList id="employeesTable" profile="EM_List" startClipperElementName="startClipper" endClipperElementName="endClipper">
+                            <ListItem profile="EM_ListItem">
+                                <Bitmap profile="fs25_subCategoryListItemIcon" name="employeeIcon"/>
+                                <Text profile="EM_ListItemTitle" name="name"/>
+                                <Text profile="EM_ListItemInfo" name="wage"/>
+                            </ListItem>
+                        </SmoothList>
+                        <ThreePartBitmap profile="fs25_subCategoryListSliderBox">
+                            <Slider profile="fs25_listSlider" dataElementId="employeesTable" />
+                        </ThreePartBitmap>
+                    </GuiElement>
+                </GuiElement>
+            </ThreePartBitmap>
+
+            <GuiElement id="noEmployeesContainer" visible="false">
+                <Text profile="EM_HeaderLeft" text="$l10n_em_no_employees" position="0px -150px" width="350px" />
             </GuiElement>
-          </GuiElement>
-        </ThreePartBitmap>
 
-        <GuiElement id="noEmployeesContainer" visible="false">
-          <Text profile="EM_HeaderLeft" text="$l10n_em_no_employees" position="0px -150px" width="350px" />
-        </GuiElement>
+            <Text id="noSelectedEmployeeText" profile="EM_HeaderLeft" text="$l10n_em_employee_empty" position="460px -230px" width="500px" />
 
-        <Text id="noSelectedEmployeeText" profile="EM_HeaderLeft" text="$l10n_em_employee_empty" position="460px -230px" width="500px" />
-        <GuiElement id="employeeInfoContainer" width="1087px" position="460px -40px" visible="false">
-          <Text profile="EM_InfoLabel" id="employeeId" position="0px -10px"/>
-          <Text profile="EM_InfoTitle" id="employeeName" position="0px -30px"/>
-          <Text profile="EM_InfoLabel" text="$l10n_em_employee_status_label" position="0px -20px"/>
-          <Text profile="EM_InfoValue" id="employeeStatusValue" position="0px -60px"/>
-          <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -120px"/>
-          <Text profile="EM_SectionTitle" position="0px -150px" text="$l10n_em_employee_skills_title"/>
-          <Text profile="EM_BodyText" position="0px -180px" id="employeeSkillsValue"/>
-          <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -600px"/>
-          <Text profile="EM_FooterLabel" position="0px -620px" text="$l10n_em_employee_total_wage"/>
-          <Text profile="EM_FooterValue" position="0px -620px" id="employeeWageValue"/>
+            <GuiElement id="employeeInfoContainer" width="1087px" position="460px -40px" visible="false">
+                <Text profile="EM_InfoLabel" id="employeeId" position="0px -10px"/>
+                <Text profile="EM_InfoTitle" id="employeeName" position="0px -60px"/>
+                <Text profile="EM_InfoLabel" text="$l10n_em_employee_status_label" position="0px -20px"/>
+                <Text profile="EM_InfoValue" id="employeeStatusValue" position="0px -60px"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -120px"/>
+                <Text profile="EM_SectionTitle" position="0px -150px" text="$l10n_em_employee_skills_title"/>
+                <Text profile="EM_BodyText" position="0px -180px" id="employeeSkillsValue"/>
+                <Text profile="EM_FooterLabel" position="0px -220px" text="$l10n_em_employee_total_wage"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -600px"/>
+                <Text profile="EM_FooterValue" position="0px -620px" id="employeeWageValue"/>
+            </GuiElement>
         </GuiElement>
     </GuiElement>
-  </GuiElement>
 </GUI>
