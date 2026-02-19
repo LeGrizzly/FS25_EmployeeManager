@@ -1,4 +1,4 @@
-print("[FS25_EmployeeManager] Loading main.lua")
+print("Loading main.lua")
 
 g_modName = g_currentModName
 g_modDirectory = g_currentModDirectory
@@ -6,7 +6,7 @@ g_modDirectory = g_currentModDirectory
 MessageType.EMPLOYEE_ADDED = nextMessageTypeId()
 MessageType.EMPLOYEE_REMOVED = nextMessageTypeId()
 
-source(g_modDirectory .. "scripts/utils/utils.lua")
+source(g_modDirectory .. "scripts/utils/Utils.lua")
 source(g_modDirectory .. "scripts/types/employee.lua")
 source(g_modDirectory .. "scripts/events/HireEmployeeEvent.lua")
 source(g_modDirectory .. "scripts/events/FireEmployeeEvent.lua")
