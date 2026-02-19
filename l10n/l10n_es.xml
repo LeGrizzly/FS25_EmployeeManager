@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<l10n>
+	<translationContributors>XelaNull (AI-assisted by Claude)</translationContributors>
+	<texts>
+		<text name="UNKNOWN" text="Desconocido" />
+		<text name="input_SHOW_EMPLOYEE_MENU" text="Mostrar menú de empleados" />
+		<text name="EM_employee_management" text="Gestión de Empleados" />
+
+		<!-- Traducciones de Gestión de Empleados (desde modDesc.xml) -->
+		<text name="em_skill_driving" text="Conducción" />
+		<text name="em_skill_harvesting" text="Cosecha" />
+		<text name="em_skill_technical" text="Técnica" />
+		<text name="em_assigned_vehicle" text="Vehículo Asignado" />
+		<text name="em_current_job" text="Trabajo Actual" />
+		<text name="em_status_available" text="Disponible" />
+		<text name="em_status_working" text="Trabajando" />
+		<text name="em_action_hire" text="Contratar" />
+		<text name="em_action_fire" text="Despedir" />
+		<text name="em_action_assign_vehicle" text="Asignar Vehículo" />
+		<text name="em_action_assign_job" text="Asignar Trabajo" />
+	</texts>
+</l10n>

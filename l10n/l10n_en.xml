@@ -2,9 +2,9 @@
 <l10n>
 	<translationContributors>LeGrizzly</translationContributors>
 	<texts>
-		<text name="UNKNOWN" text="Inconnu" />
-		<text name="input_SHOW_EMPLOYEE_MENU" text="Afficher le menu des employés" />
-		<text name="EM_employee_management" text="Gestion des Employés" />
+		<text name="UNKNOWN" text="Unknown" />
+		<text name="input_SHOW_EMPLOYEE_MENU" text="Show Employee Menu" />
+		<text name="EM_employee_management" text="Employee Management" />
 
 		<!-- Employee Manager translations (from modDesc.xml) -->
 		<text name="em_skill_driving" text="Driving" />

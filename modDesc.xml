@@ -5,10 +5,16 @@
     <title>
         <en><![CDATA[Advanced Employee Manager]]></en>
         <fr><![CDATA[Gestion Avancée des Employés]]></fr>
+        <de><![CDATA[Erweiterte Mitarbeiterverwaltung]]></de>
+        <pl><![CDATA[Zaawansowane Zarządzanie Pracownikami]]></pl>
+        <es><![CDATA[Gestión Avanzada de Empleados]]></es>
     </title>
     <description>
         <en><![CDATA[Bring a new level of depth to your farm's workforce. Hire and manage employees with unique skills to optimize your operations.]]></en>
         <fr><![CDATA[Apportez un nouveau niveau de profondeur à votre main-d'œuvre agricole. Embauchez et gérez des employés dotés de compétences uniques pour optimiser vos opérations.]]></fr>
+        <de><![CDATA[Verleihen Sie der Belegschaft Ihres Hofes mehr Tiefe. Stellen Sie Mitarbeiter mit einzigartigen Fähigkeiten ein und verwalten Sie sie, um Ihre Abläufe zu optimieren.]]></de>
+        <pl><![CDATA[Dodaj nowy poziom głębi do zarządzania siłą roboczą na Twojej farmie. Zatrudniaj i zarządzaj pracownikami o unikalnych umiejętnościach, aby zoptymalizować swoje operacje.]]></pl>
+        <es><![CDATA[Añade un nuevo nivel de profundidad a la fuerza laboral de tu granja. Contrata y gestiona empleados con habilidades únicas para optimizar tus operaciones.]]></es>
     </description>
 
     <iconFilename>icon_temporary.dds</iconFilename>
