@@ -1,84 +1,120 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<!--
+    guiProfiles.xml
+    PR Fix: Added missing layout helper profiles (EM_RowBoxH, EM_ColBoxV),
+    added EM_WorkflowListItem for the workflow SmoothList,
+    fixed EM_List (emptyPanel doesn't accept value=, must use with=),
+    removed unused EM_MenuHeaderIcon (header icon is now inline in XML).
+-->
 <GUIProfiles>
-  <Profile name="EM_MenuHeaderIcon" extends="baseReference" with="anchorMiddleCenter">
-    <imageSliceId value="gui.icon_ingameMenu_contracts" />
-    <imageColor value="$preset_fs25_colorMainDark" />
-  </Profile>
 
-  <Profile name="EM_FilterSwitcher" extends="fs25_subCategorySelector" with="anchorTopLeft" />
-  
-  <Profile name="EM_List" extends="emptyPanel" value="anchorStretchingYStretchingX">
-    <showHighlights value="true"/>
-    <listItemSpacing value="-20px"/>
-  </Profile>
+    <!-- ══════════════════════════════════════
+         LAYOUT HELPERS
+         Used by BoxLayout elements in the info
+         and workflow panels.
+    ══════════════════════════════════════ -->
+    <Profile name="EM_RowBoxH" extends="emptyPanel" with="anchorTopLeft">
+        <layoutDirection value="horizontal"/>
+        <layoutSpacing value="10px"/>
+        <clipChildren value="false"/>
+    </Profile>
 
-  <Profile name="EM_ListItem" extends="fs25_subCategoryListItem">
-    <width value="400px"/>
-  </Profile>
+    <Profile name="EM_ColBoxV" extends="emptyPanel" with="anchorTopLeft">
+        <layoutDirection value="vertical"/>
+        <layoutSpacing value="4px"/>
+        <clipChildren value="false"/>
+    </Profile>
 
-  <Profile name="EM_ListItemTitle" extends="fs25_subCategoryListItemName">
-    <width value="200px"/>
-    <position value="94px -18px"/>
-  </Profile>
+    <!-- ══════════════════════════════════════
+         TAB SWITCHER
+    ══════════════════════════════════════ -->
+    <Profile name="EM_FilterSwitcher" extends="fs25_subCategorySelector" with="anchorTopLeft"/>
 
-  <Profile name="EM_ListItemInfo" extends="EM_ListItemTitle">
-    <width value="200px"/>
-    <position value="94px -48px"/>
-    <textSize value="24px"/>
-    <textBold value="false"/>
-    <textColor value="$preset_fs25_colorMainHighlight"/>
-  </Profile>
+    <!-- ══════════════════════════════════════
+         LEFT LIST
+         FIX: "value=" is not valid on emptyPanel;
+         the stretching anchor must use "with=".
+    ══════════════════════════════════════ -->
+    <Profile name="EM_List" extends="emptyPanel" with="anchorStretchingYStretchingX">
+        <showHighlights value="true"/>
+        <listItemSpacing value="-20px"/>
+    </Profile>
 
-  <!-- Info container profiles -->
-  <Profile name="EM_InfoTitle" extends="fs25_contractsContractTitle">
-    <textSize value="28px"/>
-    <textBold value="true"/>
-    <textColor value="$preset_fs25_colorMainHighlight"/>
-    <position value="0px -30px"/>
-    <textAlignment value="left"/>
-  </Profile>
+    <!-- Standard employee / field list row -->
+    <Profile name="EM_ListItem" extends="fs25_subCategoryListItem">
+        <width value="400px"/>
+    </Profile>
 
-  <Profile name="EM_InfoLabel" extends="fs25_textDefault" with="anchorTopLeft">
-    <textSize value="18px"/>
-    <textColor value="$preset_fs25_colorWhite"/>
-    <position value="0px -10px"/>
-    <textAlignment value="left"/>
-    <textUpperCase value="true"/>
-  </Profile>
-  
-  <Profile name="EM_InfoValue" extends="fs25_textDefault" with="anchorTopRight">
-    <textSize value="24px"/>
-    <textBold value="false"/>
-    <textColor value="$preset_fs25_colorWhite"/>
-    <textAlignment value="right"/>
-    <textUpperCase value="true"/>
-  </Profile>
+    <Profile name="EM_ListItemTitle" extends="fs25_subCategoryListItemName">
+        <width value="200px"/>
+        <position value="94px -18px"/>
+    </Profile>
 
-  <Profile name="EM_SectionTitle" extends="fs25_textDefault" with="anchorTopLeft">
-    <textSize value="14px"/>
-    <textBold value="true"/>
-    <textUpperCase value="true"/>
-    <textColor value="$preset_fs25_colorWhite"/>
-    <textAlignment value="left"/>
-  </Profile>
+    <Profile name="EM_ListItemInfo" extends="EM_ListItemTitle">
+        <width value="200px"/>
+        <position value="94px -48px"/>
+        <textSize value="24px"/>
+        <textBold value="false"/>
+        <textColor value="$preset_fs25_colorMainHighlight"/>
+    </Profile>
 
-  <Profile name="EM_BodyText" extends="fs25_textGrey" with="anchorTopLeft">
-    <textMaxNumLines value="4"/>
-    <textVerticalAlignment value="top"/>
-  </Profile>
+    <!-- Workflow step list row (wider to fit assignee selector) -->
+    <Profile name="EM_WorkflowListItem" extends="fs25_subCategoryListItem">
+        <width value="570px"/>
+        <height value="52px"/>
+    </Profile>
 
-  <Profile name="EM_FooterLabel" extends="fs25_textDefault" with="anchorTopLeft">
-    <textSize value="16px" />
-    <textBold value="true" />
-    <textColor value="$preset_colorWhite_50" />
-  </Profile>
+    <!-- ══════════════════════════════════════
+         INFO PANEL TEXT STYLES
+    ══════════════════════════════════════ -->
+    <Profile name="EM_InfoTitle" extends="fs25_contractsContractTitle">
+        <textSize value="28px"/>
+        <textBold value="true"/>
+        <textColor value="$preset_fs25_colorMainHighlight"/>
+        <textAlignment value="left"/>
+    </Profile>
 
-  <Profile name="EM_FooterValue" extends="EM_FooterLabel" with="anchorTopRight">
-    <textSize value="20px" />
-    <textBold value="true" />
-    <textAlignment value="right" />
-    <textColor value="$preset_fs25_colorMainHighlight" />
-  </Profile>
-  
-  <Profile name="EM_HeaderLeft" extends="fs25_statisticsHeaderText" with="anchorTopLeft" />
+    <Profile name="EM_InfoLabel" extends="fs25_textDefault" with="anchorTopLeft">
+        <textSize value="18px"/>
+        <textColor value="$preset_fs25_colorWhite"/>
+        <textAlignment value="left"/>
+        <textUpperCase value="true"/>
+    </Profile>
+
+    <Profile name="EM_InfoValue" extends="fs25_textDefault" with="anchorTopRight">
+        <textSize value="24px"/>
+        <textBold value="false"/>
+        <textColor value="$preset_fs25_colorWhite"/>
+        <textAlignment value="right"/>
+        <textUpperCase value="true"/>
+    </Profile>
+
+    <Profile name="EM_SectionTitle" extends="fs25_textDefault" with="anchorTopLeft">
+        <textSize value="14px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textColor value="$preset_fs25_colorWhite"/>
+        <textAlignment value="left"/>
+    </Profile>
+
+    <Profile name="EM_BodyText" extends="fs25_textGrey" with="anchorTopLeft">
+        <textMaxNumLines value="3"/>
+        <textVerticalAlignment value="top"/>
+    </Profile>
+
+    <Profile name="EM_FooterLabel" extends="fs25_textDefault" with="anchorTopLeft">
+        <textSize value="16px"/>
+        <textBold value="true"/>
+        <textColor value="$preset_colorWhite_50"/>
+    </Profile>
+
+    <Profile name="EM_FooterValue" extends="EM_FooterLabel" with="anchorTopRight">
+        <textSize value="20px"/>
+        <textBold value="true"/>
+        <textAlignment value="right"/>
+        <textColor value="$preset_fs25_colorMainHighlight"/>
+    </Profile>
+
+    <Profile name="EM_HeaderLeft" extends="fs25_statisticsHeaderText" with="anchorTopLeft"/>
+
 </GUIProfiles>
