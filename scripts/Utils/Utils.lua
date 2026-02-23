@@ -7,12 +7,26 @@ CustomUtils.showDebug = true
 CustomUtils.tag = {
     INFO = "INFO",
     ERROR = "ERROR",
-    DEBUG = "DEBUG"
+    DEBUG = "DEBUG",
+    WARNING = "WARNING"
 }
 
 local function formatWithArgs(message, ...)
-    if select('#', ...) > 0 then
-        return string.format(message, ...)
+    local numArgs = select('#', ...)
+    if numArgs > 0 then
+        local args = {...}
+        for i = 1, numArgs do
+            if args[i] == nil then
+                args[i] = "nil"
+            end
+        end
+        -- Use pcall to catch formatting errors (e.g. %d with a string)
+        local success, result = pcall(string.format, message, unpack(args))
+        if success then
+            return result
+        else
+            return message .. " [Format Error: " .. result .. "]"
+        end
     end
 
     return tostring(message)
@@ -39,6 +53,10 @@ end
 
 function CustomUtils:error(message, ...)
     self:_log(self.tag.ERROR, message, ...)
+end
+
+function CustomUtils:warning(message, ...)
+    self:_log(self.tag.WARNING, message, ...)
 end
 
 function CustomUtils:debug(message, ...)
