@@ -2,7 +2,7 @@ EmployeeRenderer = {}
 EmployeeRenderer_mt = Class(EmployeeRenderer)
 
 function EmployeeRenderer.new(menu)
-    CustomUtils:print("[EmployeeRenderer] new()")
+    CustomUtils:print("[LeftListRenderer] new()")
     local self = {}
     setmetatable(self, EmployeeRenderer_mt)
     self.menu = menu
@@ -22,22 +22,17 @@ end
 
 function EmployeeRenderer:getNumberOfItemsInSection(list, section)    
     local menu = self.menu
-    if menu == nil then
-        return 0
-    end
+    if menu == nil then return 0 end
 
-    local selection = 1 -- Default
-    if menu.employeeDisplaySwitcher ~= nil then
+    -- Use pageSwitcher if available (new logic), fallback to employeeDisplaySwitcher (old logic)
+    local selection = 1
+    if menu.pageSwitcher ~= nil then
+        selection = menu.pageSwitcher:getState()
+    elseif menu.employeeDisplaySwitcher ~= nil then
         selection = menu.employeeDisplaySwitcher:getState()
-    else
-        CustomUtils:print("[EmployeeRenderer] getNumberOfItemsInSection() employeeDisplaySwitcher not found, defaulting to 1")
     end
 
-    if self.data == nil then
-        return 0
-    end
-
-    if self.data[selection] == nil then
+    if self.data == nil or self.data[selection] == nil then
         return 0
     end
 
@@ -49,28 +44,47 @@ function EmployeeRenderer:getTitleForSectionHeader(list, section)
 end
 
 function EmployeeRenderer:populateCellForItemInSection(list, section, index, cell)
-    CustomUtils:print("[EmployeeRenderer] populateCellForItemInSection(index: %s)", tostring(index))
-    
     local menu = self.menu
     if menu == nil then return end
     
     local selection = 1
-    if menu.employeeDisplaySwitcher ~= nil then
+    if menu.pageSwitcher ~= nil then
+        selection = menu.pageSwitcher:getState()
+    elseif menu.employeeDisplaySwitcher ~= nil then
         selection = menu.employeeDisplaySwitcher:getState()
     end
     
-    local employee = self.data[selection][index]
+    local item = self.data[selection][index]
 
-    if employee ~= nil then
-        cell:getAttribute("employeeIcon"):setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_character")
-        cell:getAttribute("name"):setText(employee.name)
-
-        cell:getAttribute("wage"):setText(tostring(employee.id)) -- Debug: Show ID
+    if item ~= nil then
+        -- Detect Item Type
+        if item.skills ~= nil then
+            -- It's an Employee
+            cell:getAttribute("icon"):setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_character")
+            cell:getAttribute("title"):setText(item.name)
+            
+            local wage = item.getDailyWage and item:getDailyWage() or 0
+            cell:getAttribute("subtitle"):setText(g_i18n:formatMoney(wage, 0, true, true))
+            
+            if item.assignedVehicleId then
+                 cell:getAttribute("extra"):setText("Vehicle Assigned")
+            else
+                 cell:getAttribute("extra"):setText("")
+            end
+        elseif item.area ~= nil then
+            -- It's a Field
+            cell:getAttribute("icon"):setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_map") -- Or similar map icon
+            cell:getAttribute("title"):setText(item.name) -- "Field 30"
+            cell:getAttribute("subtitle"):setText(string.format("%.2f ha", item.area))
+            cell:getAttribute("extra"):setText("")
+        else
+            -- Fallback
+            cell:getAttribute("title"):setText("Unknown Item")
+        end
     end
 end
 
 function EmployeeRenderer:onListSelectionChanged(list, section, index)
-    CustomUtils:print("[EmployeeRenderer] onListSelectionChanged(index: %s)", tostring(index))
     self.selectedRow = index
     if self.indexChangedCallback ~= nil then
         self.indexChangedCallback(index)
