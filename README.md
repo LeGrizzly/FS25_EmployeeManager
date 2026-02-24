@@ -26,5 +26,5 @@ Your feedback is invaluable as we cultivate this project. Please feel free to ra
 ## ☕ Support
 
 If you enjoy this mod and want to support my work, consider buying me a coffee!
-
-[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/legrizzly)
+<br><br>
+<a href="https://buymeacoffee.com/legrizzly"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" width="150" alt="Buy Me A Coffee" /></a>
