@@ -20,3 +20,11 @@ This mod is currently in the **early stages of development**. The core framework
 ## Feedback
 
 Your feedback is invaluable as we cultivate this project. Please feel free to raise an issue on this repository to report bugs or suggest new features.
+
+---
+
+## ☕ Support
+
+If you enjoy this mod and want to support my work, consider buying me a coffee!
+
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/legrizzly)
