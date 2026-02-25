@@ -11,11 +11,11 @@
         <text name="em_list_owned" text="Engagés" />
         <text name="em_vehicle_not_assigned" text="Aucun véhicule assigné" />
 
-        <!-- Traductions Gestion des Employés (depuis modDesc.xml) -->
         <text name="em_skill_driving" text="Conduite" />
         <text name="em_skill_harvesting" text="Récolte" />
         <text name="em_skill_technical" text="Technique" />
         <text name="em_assigned_vehicle" text="Véhicule Assigné" />
+        <text name="em_assigned_field" text="Champ Assigné" />
         <text name="em_current_job" text="Tâche Actuelle" />
         <text name="em_status_available" text="Disponible" />
         <text name="em_status_working" text="Au Travail" />
@@ -24,23 +24,80 @@
         <text name="em_action_assign_vehicle" text="Assigner Véhicule" />
         <text name="em_action_assign_job" text="Assigner Tâche" />
 
-        <!-- GUI spécifique -->
         <text name="em_current_balance" text="Solde Actuel" />
         <text name="em_no_employees" text="Aucun employé disponible." />
         <text name="em_employee_empty" text="Sélectionnez un employé pour voir les détails." />
         <text name="em_employee_status_label" text="Statut" />
         <text name="em_employee_skills_title" text="Compétences" />
+        <text name="em_employee_stats_title" text="Statistiques" />
+        <text name="em_stat_hours_worked" text="Heures Travaillées" />
+        <text name="em_stat_current_job" text="Tâche en Cours" />
+        <text name="em_idle" text="Inactif" />
+        <text name="em_none" text="Aucun" />
+        <text name="em_unknown" text="Inconnu" />
+        <text name="em_list_fields" text="Champs" />
+        <text name="em_btn_start_workflow" text="Démarrer le flux" />
         <text name="em_employee_total_wage" text="Salaire Total" />
         <text name="em_available" text="Disponibles" />
         <text name="em_hired" text="Engagés" />
         <text name="em_header_employees" text="Employés" />
         <text name="em_btn_hire" text="Engager" />
         <text name="em_btn_fire" text="Virer" />
+        <text name="em_btn_assign" text="Assigner" />
         <text name="em_dialog_hire_yes_no" text="Êtes-vous sûr de vouloir engager %s ?" />
         <text name="em_dialog_hire_yes_no_btn" text="Engager l'employé" />
         <text name="em_dialog_fire_yes_no" text="Êtes-vous sûr de vouloir virer %s ?" />
         <text name="em_dialog_fire_yes_no_btn" text="Virer l'employé" />
         <text name="em_employee_id_label" text="ID : %d" />
         <text name="em_status_hired" text="Engagé" />
+
+        <text name="em_workflow_title" text="Éditeur de Flux de Travail" />
+        <text name="em_employee_selector" text="Sélectionner un Employé" />
+        <text name="em_field_selector" text="Champ Cible" />
+        <text name="em_crop_selector" text="Culture Cible" />
+        <text name="em_btn_start" text="Démarrer le Flux de Travail" />
+        <text name="em_btn_close" text="Fermer" />
+        <text name="em_menu_instruction" text="Utilisez les contrôles pour gérer les employés et les flux de travail." />
+        <text name="em_no_selection" text="Aucune sélection" />
+        <text name="input_EM_OPEN_WORKFLOW" text="Ouvrir l'Éditeur de Flux de Travail" />
+
+        <text name="em_workflow_builder" text="Flux de travail" />
+        <text name="em_available_tasks" text="Taches disponibles" />
+        <text name="em_workflow_queue" text="File de taches" />
+        <text name="em_error_no_field" text="Veuillez d'abord assigner un champ." />
+        <text name="em_error_no_vehicle" text="Veuillez d'abord assigner un vehicule." />
+        <text name="em_error_no_tasks" text="Veuillez ajouter au moins une tache a la file." />
+        <text name="em_error_no_hired" text="Aucun employe engage. Engagez quelqu'un d'abord !" />
+        <text name="em_workflow_started" text="%s a demarre le flux sur le champ %d : %s" />
+        <text name="em_workflow_start_failed" text="Echec du demarrage du flux pour %s (verifiez vehicule/equipement)." />
+        <text name="em_workflow_saved" text="Flux sauvegarde pour %s." />
+        <text name="em_shift_label" text="Horaire" />
+        <text name="em_shift_to" text="a" />
+        <text name="em_btn_save_start" text="Sauvegarder et Demarrer" />
+        <text name="em_btn_save" text="Sauvegarder" />
+        <text name="em_btn_workflow_editor" text="Editeur de Flux" />
+
+        <text name="em_tab_employees" text="Employés" />
+        <text name="em_tab_workflows" text="Flux de travail" />
+        <text name="em_tab_fields" text="Champs" />
+        <text name="em_tab_vehicles" text="Véhicules" />
+        <text name="em_workflow_stub" text="Éditeur de flux — bientôt disponible." />
+        <text name="em_fields_stub" text="Gestion des champs — bientôt disponible." />
+        <text name="em_vehicles_stub" text="Gestion des véhicules — bientôt disponible." />
+
+        <text name="em_field_list_title" text="Champs Possédés" />
+        <text name="em_field_area" text="Superficie" />
+        <text name="em_field_crop" text="Culture Actuelle" />
+        <text name="em_field_growth" text="État de Croissance" />
+        <text name="em_field_condition" text="Condition" />
+        <text name="em_field_assigned_employee" text="Employé Assigné" />
+        <text name="em_field_empty" text="Vous ne possédez encore aucun champ." />
+
+        <text name="em_vehicle_list_title" text="Véhicules Possédés" />
+        <text name="em_vehicle_status" text="Statut IA" />
+        <text name="em_vehicle_speed" text="Vitesse" />
+        <text name="em_vehicle_implements" text="Outils Attachés" />
+        <text name="em_vehicle_assigned_employee" text="Employé Assigné" />
+        <text name="em_vehicle_empty" text="Vous ne possédez encore aucun véhicule." />
     </texts>
 </l10n>
