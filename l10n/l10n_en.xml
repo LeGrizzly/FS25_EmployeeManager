@@ -11,11 +11,11 @@
         <text name="em_list_owned" text="Hired" />
         <text name="em_vehicle_not_assigned" text="No vehicle assigned" />
 
-        <!-- Employee Manager translations (from modDesc.xml) -->
         <text name="em_skill_driving" text="Driving" />
         <text name="em_skill_harvesting" text="Harvesting" />
         <text name="em_skill_technical" text="Technical" />
         <text name="em_assigned_vehicle" text="Assigned Vehicle" />
+        <text name="em_assigned_field" text="Assigned Field" />
         <text name="em_current_job" text="Current Job" />
         <text name="em_status_available" text="Available" />
         <text name="em_status_working" text="Working" />
@@ -24,23 +24,80 @@
         <text name="em_action_assign_vehicle" text="Assign Vehicle" />
         <text name="em_action_assign_job" text="Assign Job" />
 
-        <!-- GUI specific -->
         <text name="em_current_balance" text="Current Balance" />
         <text name="em_no_employees" text="No employees available." />
         <text name="em_employee_empty" text="Select an employee to see details." />
         <text name="em_employee_status_label" text="Status" />
         <text name="em_employee_skills_title" text="Skills" />
+        <text name="em_employee_stats_title" text="Work Stats" />
+        <text name="em_stat_hours_worked" text="Hours Worked" />
+        <text name="em_stat_current_job" text="Current Job" />
+        <text name="em_idle" text="Idle" />
+        <text name="em_none" text="None" />
+        <text name="em_unknown" text="Unknown" />
+        <text name="em_list_fields" text="Fields" />
+        <text name="em_btn_start_workflow" text="Start Workflow" />
         <text name="em_employee_total_wage" text="Total Wage" />
         <text name="em_available" text="Available" />
         <text name="em_hired" text="Hired" />
         <text name="em_header_employees" text="Employees" />
         <text name="em_btn_hire" text="Hire" />
         <text name="em_btn_fire" text="Fire" />
+        <text name="em_btn_assign" text="Assign" />
         <text name="em_dialog_hire_yes_no" text="Are you sure you want to hire %s?" />
         <text name="em_dialog_hire_yes_no_btn" text="Hire Employee" />
         <text name="em_dialog_fire_yes_no" text="Are you sure you want to fire %s?" />
         <text name="em_dialog_fire_yes_no_btn" text="Fire Employee" />
         <text name="em_employee_id_label" text="ID: %d" />
         <text name="em_status_hired" text="Hired" />
+        
+        <text name="em_workflow_title" text="Employee Workflow Editor" />
+        <text name="em_employee_selector" text="Select Employee" />
+        <text name="em_field_selector" text="Target Field" />
+        <text name="em_crop_selector" text="Target Crop" />
+        <text name="em_btn_start" text="Start Workflow" />
+        <text name="em_btn_close" text="Close" />
+        <text name="em_menu_instruction" text="Use the controls to manage employees and workflows." />
+        <text name="em_no_selection" text="No selection" />
+        <text name="input_EM_OPEN_WORKFLOW" text="Employee Manager: Workflow Editor" />
+
+        <text name="em_workflow_builder" text="Workflow" />
+        <text name="em_available_tasks" text="Available Tasks" />
+        <text name="em_workflow_queue" text="Task Queue" />
+        <text name="em_error_no_field" text="Please assign a field first." />
+        <text name="em_error_no_vehicle" text="Please assign a vehicle first." />
+        <text name="em_error_no_tasks" text="Please add at least one task to the queue." />
+        <text name="em_error_no_hired" text="No hired employees. Hire someone first!" />
+        <text name="em_workflow_started" text="%s started workflow on Field %d: %s" />
+        <text name="em_workflow_start_failed" text="Failed to start workflow for %s (check vehicle/equipment)." />
+        <text name="em_workflow_saved" text="Workflow saved for %s." />
+        <text name="em_shift_label" text="Shift" />
+        <text name="em_shift_to" text="to" />
+        <text name="em_btn_save_start" text="Save &amp; Start" />
+        <text name="em_btn_save" text="Save" />
+        <text name="em_btn_workflow_editor" text="Workflow Editor" />
+
+        <text name="em_tab_employees" text="Employees" />
+        <text name="em_tab_workflows" text="Workflows" />
+        <text name="em_tab_fields" text="Fields" />
+        <text name="em_tab_vehicles" text="Vehicles" />
+        <text name="em_workflow_stub" text="Workflow editor — coming soon." />
+        <text name="em_fields_stub" text="Field management — coming soon." />
+        <text name="em_vehicles_stub" text="Vehicle management — coming soon." />
+
+        <text name="em_field_list_title" text="Owned Fields" />
+        <text name="em_field_area" text="Area" />
+        <text name="em_field_crop" text="Current Crop" />
+        <text name="em_field_growth" text="Growth State" />
+        <text name="em_field_condition" text="Condition" />
+        <text name="em_field_assigned_employee" text="Assigned Employee" />
+        <text name="em_field_empty" text="You don't own any fields yet." />
+
+        <text name="em_vehicle_list_title" text="Owned Vehicles" />
+        <text name="em_vehicle_status" text="AI Status" />
+        <text name="em_vehicle_speed" text="Speed" />
+        <text name="em_vehicle_implements" text="Attached Implements" />
+        <text name="em_vehicle_assigned_employee" text="Assigned Employee" />
+        <text name="em_vehicle_empty" text="You don't own any vehicles yet." />
     </texts>
 </l10n>
