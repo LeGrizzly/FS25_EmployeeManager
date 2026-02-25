@@ -25,7 +25,6 @@ function TaskListItemRenderer:populateCellForItemInSection(list, section, index,
     local item = self.list[index]
     if item then
         cell:getAttribute("title"):setText(item.label)
-        -- Optional: Icon based on task type
     end
 end
 

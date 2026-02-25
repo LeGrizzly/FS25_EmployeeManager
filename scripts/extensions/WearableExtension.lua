@@ -10,12 +10,10 @@ function WearableExtension.overwrittenUpdateDamageAmount(vehicle, superFunc, dt)
     local changeAmount = superFunc(vehicle, dt)
     
     if changeAmount > 0 and g_employeeManager ~= nil then
-        -- Find if an employee is working with this vehicle
         local employee = g_employeeManager:getEmployeeByVehicle(vehicle)
         if employee and employee.isHired and employee.currentJob ~= nil then
             local multiplier = employee:getTechnicalMultiplier()
             changeAmount = changeAmount * multiplier
-            -- CustomUtils:debug("[WearableExtension] Reduced damage for %s (Emp: %s, Mult: %.2f)", vehicle:getName(), employee.name, multiplier)
         end
     end
     
@@ -32,19 +30,16 @@ function WearableExtension.overwrittenUpdateWearAmount(vehicle, superFunc, nodeD
     local changeAmount = superFunc(vehicle, nodeData, dt)
     
     if changeAmount > 0 and g_employeeManager ~= nil then
-        -- Find if an employee is working with this vehicle
         local employee = g_employeeManager:getEmployeeByVehicle(vehicle)
         if employee and employee.isHired and employee.currentJob ~= nil then
             local multiplier = employee:getTechnicalMultiplier()
             changeAmount = changeAmount * multiplier
-            -- CustomUtils:debug("[WearableExtension] Reduced wear for %s (Emp: %s, Mult: %.2f)", vehicle:getName(), employee.name, multiplier)
         end
     end
     
     return changeAmount
 end
 
----Initializes the Wearable hooks
 function WearableExtension.init()
     if Wearable ~= nil then
         Wearable.updateDamageAmount = Utils.overwrittenFunction(Wearable.updateDamageAmount, WearableExtension.overwrittenUpdateDamageAmount)

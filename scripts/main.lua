@@ -12,9 +12,14 @@ source(g_modDirectory .. "scripts/events/HireEmployeeEvent.lua")
 source(g_modDirectory .. "scripts/events/FireEmployeeEvent.lua")
 
 source(g_modDirectory .. "scripts/gui/EmployeeRenderer.lua")
-source(g_modDirectory .. "scripts/gui/WorkflowStepRenderer.lua")
 source(g_modDirectory .. "scripts/gui/TaskListItemRenderer.lua")
 source(g_modDirectory .. "scripts/gui/MenuEmployeeManager.lua")
+
+source(g_modDirectory .. "scripts/gui/EMEmployeeFrame.lua")
+source(g_modDirectory .. "scripts/gui/EMWorkflowFrame.lua")
+source(g_modDirectory .. "scripts/gui/EMFieldFrame.lua")
+source(g_modDirectory .. "scripts/gui/EMVehicleFrame.lua")
+source(g_modDirectory .. "scripts/gui/EMGui.lua")
 
 source(g_modDirectory .. "scripts/managers/commandmanager.lua")
 source(g_modDirectory .. "scripts/managers/coursemanager.lua")
@@ -28,6 +33,5 @@ source(g_modDirectory .. "scripts/ModGui.lua")
 
 source(g_modDirectory .. "scripts/modcontroller.lua")
 
--- Initialize specialization extensions
 WearableExtension.init()
 AIOverrideExtension.init()

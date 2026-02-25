@@ -1,4 +1,3 @@
----@class CropManager
 CropManager = {}
 
 local CropManager_mt = Class(CropManager)
@@ -7,7 +6,6 @@ function CropManager:new(mission)
     local self = setmetatable({}, CropManager_mt)
     self.mission = mission
     
-    -- Knowledge from CSV
     self.crops = {
         WHEAT = { category = "Céréales", fruitType = "WHEAT", steps = {"MULCH", "LIME", "PLOW", "STONES", "FERTILIZE", "SOW", "ROLL", "WEED", "FERTILIZE", "HARVEST"} },
         BARLEY = { category = "Céréales", fruitType = "BARLEY", steps = {"MULCH", "LIME", "PLOW", "STONES", "FERTILIZE", "SOW", "ROLL", "WEED", "FERTILIZE", "HARVEST"} },
@@ -40,7 +38,6 @@ function CropManager:getNextStep(field, targetCropName)
     local cropData = self.crops[targetCropName]
     if not cropData then return nil, "Unknown crop" end
 
-    -- Ensure field state is valid and updated
     if field.fieldState == nil then
         field.fieldState = FieldState.new()
     end
@@ -50,24 +47,19 @@ function CropManager:getNextStep(field, targetCropName)
     
     local state = field.fieldState
     if not state or not state.isValid then 
-        -- If update failed to make it valid, try to detect ground type at least
         if state and state.groundType == 0 then
             return nil, "Field state invalid or ground not detected"
         end
     end
 
-    -- Debug: Dump Field State
     CustomUtils:debug("[CropManager] Field %d Analysis for %s:", field.fieldId, targetCropName)
     CustomUtils:debug("  - Fruit: %d (Target: %d)", state.fruitTypeIndex, self:getFruitTypeIndex(targetCropName))
     CustomUtils:debug("  - Growth: %d", state.growthState)
     CustomUtils:debug("  - Plow: %d | Lime: %d | Stones: %d", state.plowLevel, state.limeLevel, state.stoneLevel)
     CustomUtils:debug("  - Stubble: %d | Weed: %d | Spray: %d", state.stubbleShredLevel, state.weedState, state.sprayLevel)
 
-    -- 1. Critical Overrides (Harvest or Wrong Crop)
-    -- These take precedence over the workflow because they reset the field
     local targetFruitIndex = self:getFruitTypeIndex(targetCropName)
     
-    -- Check for Harvest (Target crop ready)
     if state.fruitTypeIndex == targetFruitIndex and state.growthState > 0 then
         local fruitType = g_fruitTypeManager:getFruitTypeByIndex(state.fruitTypeIndex)
         if fruitType and state.growthState >= fruitType.minHarvestingGrowthState then
@@ -77,22 +69,17 @@ function CropManager:getNextStep(field, targetCropName)
         end
     end
 
-    -- Check for Wrong Crop (Reset required)
     if state.fruitTypeIndex ~= FruitType.UNKNOWN and state.fruitTypeIndex ~= targetFruitIndex then
         local fruitType = g_fruitTypeManager:getFruitTypeByIndex(state.fruitTypeIndex)
         local fruitName = fruitType and fruitType.name or "UNKNOWN"
-        
-        -- If wrong crop is ready to harvest, harvest it (profit!)
+
         if fruitType and state.growthState >= fruitType.minHarvestingGrowthState then
             return "HARVEST", string.format("Harvesting existing %s before planting %s", fruitName, targetCropName)
         else
-            -- Otherwise destroy it
             return "PLOW", string.format("Destroying existing %s to plant %s", fruitName, targetCropName)
         end
     end
 
-    -- 2. Strict Workflow Execution
-    -- We iterate through the defined steps for this crop. The FIRST step that is "needed" is returned.
     for index, step in ipairs(cropData.steps) do
         local needed, reason = self:checkStepRequirement(step, state, targetCropName)
         if needed then
@@ -111,9 +98,6 @@ end
 ---@return boolean needed, string reason
 function CropManager:checkStepRequirement(step, state, targetCropName)
     if step == "MULCH" then
-        -- Mulch if there is stubble (level 0 usually means UNSHREDDED stubble in some maps, check logic)
-        -- Assumption: stubbleShredLevel 0 = needs shredding if harvest just happened
-        -- But we only mulch if we are NOT going to plow (Plowing handles stubble)
         if state.stubbleShredLevel == 0 and state.fruitTypeIndex == FruitType.UNKNOWN and state.plowLevel == 0 then
             return true, "Stubble detected (No plowing needed)"
         end
@@ -134,8 +118,6 @@ function CropManager:checkStepRequirement(step, state, targetCropName)
         if state.fruitTypeIndex == FruitType.UNKNOWN then
             local canPlant, reason = self:canPlant(targetCropName)
             if canPlant then return true, "Ready to sow" end
-            -- If we can't plant, we don't return true (we wait), but we don't skip to next step either?
-            -- Actually, if we can't plant, we should probably WAIT.
         end
 
     elseif step == "ROLL" then
@@ -145,12 +127,10 @@ function CropManager:checkStepRequirement(step, state, targetCropName)
         if state.weedState > 0 then return true, "Weeds detected" end
     
     elseif step == "RIDGING" then
-         -- Potato/etc logic
-         return false, "Not implemented yet"
-         
+        return false, "Not implemented yet"
+
     elseif step == "MULCH_LEAVES" then
-         -- Potato haulm topping
-         if state.growthState >= 6 then return true, "Ready for haulm topping" end -- Pseudo-check
+        if state.growthState >= 6 then return true, "Ready for haulm topping" end
     end
 
     return false, nil
@@ -164,9 +144,7 @@ function CropManager:canPlant(cropName)
     if not fruitType then return false, "Fruit type not found" end
 
     local currentMonth = g_currentMission.environment.currentMonth
-    
-    -- Check if currentMonth is in planting window
-    -- In FS25 fruitType.periodData contains this info
+
     if fruitType.periodData and fruitType.periodData.plantingPeriods then
         for _, month in ipairs(fruitType.periodData.plantingPeriods) do
             if month == currentMonth then
@@ -176,7 +154,7 @@ function CropManager:canPlant(cropName)
         return false, "Outside planting window"
     end
 
-    return true, "No period data available" -- Assume true if no calendar (seasonal growth off)
+    return true, "No period data available"
 end
 
 function CropManager:getFruitTypeIndex(cropName)

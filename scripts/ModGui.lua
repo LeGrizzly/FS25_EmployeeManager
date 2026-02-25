@@ -102,8 +102,34 @@ function ModGui:load()
     g_gui:loadProfiles(g_modDirectory .. "xml/gui/guiProfiles.xml")
 
     if not self:loadMenuFrame(MenuEmployeeManager) then
-        CustomUtils:debug('[EmployeeManager] ModGui:load() MenuEmployeeManager already loaded')
+        CustomUtils:debug('[MenuEmployeeManager] ModGui:load() MenuEmployeeManager already loaded')
     end
+
+    self:loadTabbedMenu()
+end
+
+function ModGui:loadTabbedMenu()
+    CustomUtils:info("[ModGui] loadTabbedMenu()")
+
+    local employeeFrame = EMEmployeeFrame:new()
+    local workflowFrame = EMWorkflowFrame:new()
+    local fieldFrame    = EMFieldFrame:new()
+    local vehicleFrame  = EMVehicleFrame:new()
+
+    g_emGui = EMGui:new(g_messageCenter, g_i18n, g_inputBinding)
+
+    CustomUtils:info("[ModGui] Loading EMEmployeeFrame...")
+    g_gui:loadGui(g_modDirectory .. "xml/gui/EMEmployeeFrame.xml", "EMEmployeeFrame", employeeFrame, true)
+    CustomUtils:info("[ModGui] Loading EMWorkflowFrame...")
+    g_gui:loadGui(g_modDirectory .. "xml/gui/EMWorkflowFrame.xml", "EMWorkflowFrame", workflowFrame, true)
+    CustomUtils:info("[ModGui] Loading EMFieldFrame...")
+    g_gui:loadGui(g_modDirectory .. "xml/gui/EMFieldFrame.xml",    "EMFieldFrame",    fieldFrame,    true)
+    CustomUtils:info("[ModGui] Loading EMVehicleFrame...")
+    g_gui:loadGui(g_modDirectory .. "xml/gui/EMVehicleFrame.xml",  "EMVehicleFrame",  vehicleFrame,  true)
+    CustomUtils:info("[ModGui] Loading EMGui (TabbedMenu)...")
+    g_gui:loadGui(g_modDirectory .. "xml/gui/EMGui.xml",           "EMGui",           g_emGui)
+
+    CustomUtils:info("[ModGui] TabbedMenu loaded successfully")
 end
 
 function ModGui:loadMenuFrame(class)
@@ -119,8 +145,7 @@ function ModGui:loadMenuFrame(class)
     end
 
     if g_gui == nil or g_inGameMenu == nil then
-        -- If global menu references are not yet available, delay loading.
-        CustomUtils:info('[EmployeeManager] g_gui or g_inGameMenu not ready, deferring menu load')
+        CustomUtils:info('[MenuEmployeeManager] g_gui or g_inGameMenu not ready, deferring menu load')
         return false
     end
 
@@ -128,7 +153,7 @@ function ModGui:loadMenuFrame(class)
 
     local iconPath = 'images/MenuIcon.dds'
     local uvs = {0, 0, 1024, 1024}
-    -- local position = 4
+
     local position = "pageSettings"
     local predicate = function() return true end
     addIngameMenuPage(pageController, pageName, iconPath, uvs, position, predicate)

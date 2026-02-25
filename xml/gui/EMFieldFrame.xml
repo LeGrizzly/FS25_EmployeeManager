@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<GUI name="EMField">
+    <GuiElement profile="uiInGameMenuFrame">
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg" />
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_em_tab_fields" />
+        </GuiElement>
+
+        <GuiElement profile="emptyPanel" id="mainBox" position="0px -80px">
+
+            <GuiElement profile="emMenuLeftColumn">
+                <Text profile="EM_SectionTitle" position="20px -10px" text="$l10n_em_field_list_title" />
+
+                <SmoothList id="fieldList" profile="emMenuList" position="10px -35px" width="760px" height="700px"
+                            selectedWithoutFocus="true">
+                    <ListItem profile="emMenuListItem">
+                        <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>
+                        <Text profile="emMenuListItemTitle" name="title"/>
+                        <Text profile="emMenuListItemSubtitle" name="subtitle"/>
+                    </ListItem>
+                </SmoothList>
+
+                <ThreePartBitmap profile="emMenuListSliderBox">
+                    <Slider profile="fs25_listSlider" dataElementId="fieldList" />
+                </ThreePartBitmap>
+            </GuiElement>
+
+            <GuiElement profile="emMenuRightColumn" id="detailPanel">
+                <Text profile="EM_InfoTitle" id="txtFieldId" position="10px -10px"/>
+
+                <BoxLayout profile="EM_ColBoxV" position="10px -50px" width="560px">
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_field_area"/>
+                        <Text profile="EM_InfoValue" id="txtFieldArea"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_field_crop"/>
+                        <Text profile="EM_InfoValue" id="txtCurrentCrop"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_field_growth"/>
+                        <Text profile="EM_InfoValue" id="txtGrowthState"/>
+                    </BoxLayout>
+                </BoxLayout>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -170px" width="560px"/>
+
+                <Text profile="EM_SectionTitle" position="10px -185px" text="$l10n_em_field_condition"/>
+                <Text profile="EM_InfoLabel" id="txtFieldCondition" position="10px -205px" width="560px"/>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -240px" width="560px"/>
+
+                <Text profile="EM_SectionTitle" position="10px -255px" text="$l10n_em_field_assigned_employee"/>
+                <Text profile="EM_InfoValue" id="txtAssignedEmployee" position="10px -275px" width="560px"/>
+            </GuiElement>
+        </GuiElement>
+
+        <Text profile="emMenuEmptyText" id="emptyText" text="$l10n_em_field_empty" visible="false" />
+    </GuiElement>
+</GUI>
