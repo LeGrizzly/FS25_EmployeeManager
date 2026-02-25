@@ -1,4 +1,3 @@
----@class CourseManager
 CourseManager = {}
 
 local CourseManager_mt = Class(CourseManager)
@@ -6,7 +5,7 @@ local CourseManager_mt = Class(CourseManager)
 function CourseManager:new(mission)
     local self = setmetatable({}, CourseManager_mt)
     self.mission = mission
-    self.courses = {} -- Stores generated courses
+    self.courses = {}
     
     CustomUtils:debug("[CourseManager] Initialized")
     return self
@@ -17,16 +16,12 @@ end
 ---@param vehicle table
 ---@return table|nil The generated course data or nil
 function CourseManager:generateCourse(fieldId, vehicle)
-    -- This is a placeholder for the complex course generation logic
-    -- in the future we will hook into g_fieldCourseManager
-    
     local field = g_fieldManager:getFieldById(fieldId)
     if not field then
         CustomUtils:error("[CourseManager] Field %d not found", fieldId)
         return nil
     end
 
-    -- For now, we simulate a course object
     local course = {
         id = #self.courses + 1,
         fieldId = fieldId,

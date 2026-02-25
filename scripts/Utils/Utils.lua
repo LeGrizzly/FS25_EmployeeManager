@@ -20,7 +20,7 @@ local function formatWithArgs(message, ...)
                 args[i] = "nil"
             end
         end
-        -- Use pcall to catch formatting errors (e.g. %d with a string)
+
         local success, result = pcall(string.format, message, unpack(args))
         if success then
             return result
@@ -63,7 +63,6 @@ function CustomUtils:debug(message, ...)
     self:_log(self.tag.DEBUG, message, ...)
 end
 
--- Preserve legacy behaviour for raw prints
 function CustomUtils:print(message, ...)
     if not self.showDebug then
         return

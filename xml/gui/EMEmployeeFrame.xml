@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<GUI name="EMEmployee">
+    <GuiElement profile="uiInGameMenuFrame">
+        <GuiElement profile="fs25_menuHeaderPanel">
+            <Bitmap profile="fs25_menuHeaderIconBg" />
+            <Text profile="fs25_menuHeaderTitle" text="$l10n_em_tab_employees" />
+        </GuiElement>
+
+        <GuiElement profile="emptyPanel" id="mainBox" position="0px -80px">
+
+            <GuiElement profile="emMenuLeftColumn">
+                <MultiTextOption profile="EM_FilterSwitcher" id="listSwitcher" onClick="onSwitchList" size="380px 32px" position="20px -10px"/>
+
+                <SmoothList id="employeeList" profile="emMenuList" position="10px -55px" width="760px" height="680px"
+                            selectedWithoutFocus="true">
+                    <ListItem profile="emMenuListItem">
+                        <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>
+                        <Text profile="emMenuListItemTitle" name="title"/>
+                        <Text profile="emMenuListItemSubtitle" name="subtitle"/>
+                    </ListItem>
+                </SmoothList>
+
+                <ThreePartBitmap profile="emMenuListSliderBox">
+                    <Slider profile="fs25_listSlider" dataElementId="employeeList" />
+                </ThreePartBitmap>
+            </GuiElement>
+
+            <GuiElement profile="emMenuRightColumn" id="detailPanel">
+                <Text profile="EM_InfoLabel" id="txtId" position="10px -10px"/>
+                <Text profile="EM_InfoTitle" id="txtName" position="10px -30px"/>
+
+                <BoxLayout profile="EM_ColBoxV" position="10px -70px" width="560px">
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_employee_status_label"/>
+                        <Text profile="EM_InfoValue" id="txtStatus"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_assigned_field"/>
+                        <Text profile="EM_InfoValue" id="txtAssignedField"/>
+                    </BoxLayout>
+                </BoxLayout>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -140px" width="560px"/>
+
+                <Text profile="EM_SectionTitle" position="10px -155px" text="$l10n_em_employee_skills_title"/>
+
+                <BoxLayout profile="EM_ColBoxV" position="10px -175px" width="560px">
+                    <BoxLayout profile="EM_RowBoxH" width="560px">
+                        <Text profile="EM_SkillLabel" text="$l10n_em_skill_driving"/>
+                        <Text profile="EM_SkillStars" id="skillDrivingStars"/>
+                        <Text profile="EM_SkillXP" id="skillDrivingXP"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH" width="560px">
+                        <Text profile="EM_SkillLabel" text="$l10n_em_skill_harvesting"/>
+                        <Text profile="EM_SkillStars" id="skillHarvestingStars"/>
+                        <Text profile="EM_SkillXP" id="skillHarvestingXP"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH" width="560px">
+                        <Text profile="EM_SkillLabel" text="$l10n_em_skill_technical"/>
+                        <Text profile="EM_SkillStars" id="skillTechnicalStars"/>
+                        <Text profile="EM_SkillXP" id="skillTechnicalXP"/>
+                    </BoxLayout>
+                </BoxLayout>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -265px" width="560px"/>
+                <Text profile="EM_SectionTitle" position="10px -280px" text="$l10n_em_employee_stats_title"/>
+
+                <BoxLayout profile="EM_ColBoxV" position="10px -300px" width="560px">
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_stat_hours_worked"/>
+                        <Text profile="EM_InfoValue" id="statHoursWorked"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_stat_current_job"/>
+                        <Text profile="EM_InfoValue" id="statCurrentJob"/>
+                    </BoxLayout>
+                </BoxLayout>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -365px" width="560px"/>
+                <Text profile="EM_SectionTitle" position="10px -380px" text="$l10n_em_workflow_builder"/>
+                <Text profile="EM_InfoLabel" id="txtWorkflowSummary" position="10px -400px" width="560px"/>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -435px" width="560px"/>
+                <Text profile="EM_FooterLabel" position="10px -450px" text="$l10n_em_employee_total_wage"/>
+                <Text profile="EM_FooterValue" position="10px -450px" id="txtWage" width="560px"/>
+            </GuiElement>
+        </GuiElement>
+
+        <Text profile="emMenuEmptyText" id="emptyText" text="$l10n_em_employee_empty" visible="false" />
+    </GuiElement>
+</GUI>

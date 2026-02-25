@@ -1,4 +1,3 @@
----@class CommandManager
 CommandManager = {}
 local CommandManager_mt = Class(CommandManager)
 
@@ -49,8 +48,6 @@ function CommandManager:consoleHelp()
     return "End of help."
 end
 
--- Initialize singleton
 g_commandManager = CommandManager:new()
 
--- Register self help command
 g_commandManager:add("emHelp", "Lists all available Employee Manager commands", "emHelp", "consoleHelp", g_commandManager)
