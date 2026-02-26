@@ -388,6 +388,9 @@ function JobManager:update(dt)
                     self:startFieldWorkJob(employee, vehicle, pending.fieldId, pending.workType)
                 else
                     employee.currentJob = nil
+                    if g_employeeManager then
+                        g_employeeManager:onJobCompleted(employee)
+                    end
                     if employee.temporaryRental then
                         g_employeeManager:returnRentedEquipment(employee)
                     end

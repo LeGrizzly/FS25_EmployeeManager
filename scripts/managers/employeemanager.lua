@@ -15,9 +15,13 @@ function EmployeeManager:new(mission)
 
     self.employees = {}
     self.fieldConfigs = {}
+    self.employeeTemplates = {}
 
-    self.firstNames = {"John", "Peter", "Mike", "David", "Chris", "Paul", "Mark", "James", "Andrew", "Daniel"}
-    self.lastNames = {"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"}
+    self.lastPoolRefreshDay = 0
+    self.POOL_REFRESH_DAYS = 3
+    self.POOL_MIN = 8
+    self.POOL_MAX = 12
+    self.lastDayChecked = 0
 
     CustomUtils:debug("[EmployeeManager] Initialized")
     return self
@@ -30,7 +34,7 @@ function EmployeeManager:onMissionInitialize(baseDirectory)
         g_commandManager:add('emAssignVehicle', 'Assigns a vehicle to an employee', 'emAssignVehicle <id> <vehId>', 'consoleAssignVehicle', self)
         g_commandManager:add('emUnassignVehicle', 'Unassigns a vehicle from an employee', 'emUnassignVehicle <id>', 'consoleUnassignVehicle', self)
         g_commandManager:add('emDebugVehicles', 'List all vehicles owned by the farm', 'emDebugVehicles', 'consoleDebugVehicles', self)
-        g_commandManager:add('emHireRandom', 'Hires a random employee', 'emHireRandom', 'generateRandomEmployee', self)
+        g_commandManager:add('emHireRandom', 'Generates a new candidate from templates', 'emHireRandom', 'consoleGenerateCandidate', self)
         g_commandManager:add('emList', 'Lists all employees', 'emList', 'consoleListEmployees', self)
         g_commandManager:add('emStartTask', 'Starts a task for an employee', 'emStartTask <id> <taskName> [fieldId]', 'consoleStartTask', self)
         g_commandManager:add('emSetCrop', 'Sets target crop/field for an employee', 'emSetCrop <id> <fieldId> <cropName>', 'consoleSetTargetCrop', self)
@@ -48,6 +52,7 @@ function EmployeeManager:onMissionInitialize(baseDirectory)
         g_commandManager:add('emListFields', 'Lists all fields owned by your farm', 'emListFields', 'consoleListFields', self)
         g_commandManager:add('emRentVehicle', 'Rents a vehicle for an employee by store item name', 'emRentVehicle <empId> <storeItemName>', 'consoleRentVehicle', self)
         g_commandManager:add('emClearAll', 'Clears all employees (DEBUG)', 'emClearAll', 'consoleClearAll', self)
+        g_commandManager:add('emTrain', 'Trains an employee skill', 'emTrain <id> <skillName>', 'consoleTrain', self)
     else
         CustomUtils:error("[EmployeeManager] CommandManager not found!")
     end
@@ -62,15 +67,17 @@ function EmployeeManager:update(dt)
     end
 
     local farmId = g_currentMission:getFarmId()
+    local marketMult = self:getMarketMultiplier()
     local totalWagesToPay = 0
-    
+
     for _, employee in ipairs(self.employees) do
         if employee.isHired and employee.currentJob ~= nil then
             local hoursWorked = employee:updateWorkTime(dt)
             if hoursWorked > 0 then
-                local wage = employee:getHourlyWage() * hoursWorked
+                local wage = employee:getHourlyWage() * marketMult * hoursWorked
                 totalWagesToPay = totalWagesToPay + wage
-                
+                employee.totalWagesPaid = (employee.totalWagesPaid or 0) + wage
+
                 employee:addExperience("driving", hoursWorked * 10)
                 if employee.currentJob.type == "FIELDWORK" and employee.currentJob.workType == "HARVEST" then
                     employee:addExperience("harvesting", hoursWorked * 15)
@@ -80,21 +87,21 @@ function EmployeeManager:update(dt)
         end
 
         if employee.isHired and employee.isAutonomous and employee.currentJob == nil and employee.targetCrop ~= nil and employee.targetFieldId ~= nil then
-            
+
             employee.decisionTimer = (employee.decisionTimer or 0) + dt
             if employee.decisionTimer > 5000 then
                 employee.decisionTimer = 0
-                
+
                 local field = g_fieldManager:getFieldById(employee.targetFieldId)
                 if field then
                     local nextStep, reason = self.cropManager:getNextStep(field, employee.targetCrop)
                     if nextStep ~= nil and nextStep ~= "WAIT" then
-                        CustomUtils:info("[EmployeeManager] %s deciding next step for %s on field %d: %s (%s)", 
+                        CustomUtils:info("[EmployeeManager] %s deciding next step for %s on field %d: %s (%s)",
                             employee.name, employee.targetCrop, employee.targetFieldId, nextStep, reason)
-                        
+
                         self.jobManager:startFieldWork(employee, employee.targetFieldId, nextStep)
                     else
-                        CustomUtils:debug("[EmployeeManager] %s is WAITING on field %d (%s): %s", 
+                        CustomUtils:debug("[EmployeeManager] %s is WAITING on field %d (%s): %s",
                             employee.name, employee.targetFieldId, employee.targetCrop, reason or "No action needed")
                     end
                 else
@@ -108,6 +115,97 @@ function EmployeeManager:update(dt)
     if totalWagesToPay > 0 then
         local moneyType = MoneyType.WORKER_WAGES or MoneyType.OTHER
         g_currentMission:addMoney(-totalWagesToPay, farmId, moneyType, true)
+    end
+
+    self:checkPoolRefresh()
+end
+
+function EmployeeManager:getMarketMultiplier()
+    local available = #self:getAvailableEmployees()
+    local maxPool = #self.employeeTemplates
+    if maxPool == 0 then return 1.0 end
+    return 1.0 + 0.3 * (1 - available / maxPool)
+end
+
+function EmployeeManager:checkPoolRefresh()
+    if g_currentMission == nil or g_currentMission.environment == nil then return end
+    local currentDay = g_currentMission.environment.currentDay or 0
+    if currentDay == self.lastDayChecked then return end
+    self.lastDayChecked = currentDay
+
+    if self.lastPoolRefreshDay == 0 then
+        self.lastPoolRefreshDay = currentDay
+        return
+    end
+
+    if (currentDay - self.lastPoolRefreshDay) >= self.POOL_REFRESH_DAYS then
+        self:refreshCandidatePool()
+        self.lastPoolRefreshDay = currentDay
+    end
+end
+
+function EmployeeManager:refreshCandidatePool()
+    local available = self:getAvailableEmployees()
+    local removeCount = math.min(#available, math.random(1, 2))
+
+    for i = 1, removeCount do
+        if #available <= 0 then break end
+        local idx = math.random(#available)
+        local emp = available[idx]
+        for j, e in ipairs(self.employees) do
+            if e.id == emp.id then
+                table.remove(self.employees, j)
+                break
+            end
+        end
+        table.remove(available, idx)
+    end
+
+    local currentAvailable = #self:getAvailableEmployees()
+    local target = math.random(self.POOL_MIN, self.POOL_MAX)
+    local toGenerate = math.max(0, target - currentAvailable)
+    for _ = 1, toGenerate do
+        self:generateEmployeeFromTemplate()
+    end
+
+    CustomUtils:info("[EmployeeManager] Pool refreshed: removed %d, generated %d. Available: %d",
+        removeCount, toGenerate, #self:getAvailableEmployees())
+    g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
+end
+
+function EmployeeManager:getDaysUntilPoolRefresh()
+    if g_currentMission == nil or g_currentMission.environment == nil then return 0 end
+    local currentDay = g_currentMission.environment.currentDay or 0
+    local daysSince = currentDay - (self.lastPoolRefreshDay or currentDay)
+    return math.max(0, self.POOL_REFRESH_DAYS - daysSince)
+end
+
+function EmployeeManager:trainEmployee(empId, skillName)
+    local employee = self:getEmployeeById(empId)
+    if employee == nil then return false, "Employee not found" end
+    if not employee.isHired then return false, "Employee not hired" end
+
+    local currentDay = 0
+    if g_currentMission and g_currentMission.environment then
+        currentDay = g_currentMission.environment.currentDay or 0
+    end
+
+    local canDo, reason = employee:canTrain(skillName, currentDay)
+    if not canDo then return false, reason end
+
+    local cost = employee:getTrainingCost(skillName)
+    local farmId = g_currentMission:getFarmId()
+    local balance = g_currentMission:getMoney(farmId)
+    if balance < cost then return false, "not_enough_money" end
+
+    g_currentMission:addMoney(-cost, farmId, MoneyType.OTHER, true)
+    employee:train(skillName, currentDay)
+    return true, "ok"
+end
+
+function EmployeeManager:onJobCompleted(employee)
+    if employee then
+        employee.tasksCompleted = (employee.tasksCompleted or 0) + 1
     end
 end
 
@@ -222,80 +320,139 @@ function EmployeeManager:fireEmployee(id)
     return false
 end
 
----Generates a new random employee and adds to list
----@return table The new employee
-function EmployeeManager:generateRandomEmployee()
+---Loads employee templates from xml/data/employees.xml
+---@param modDirectory string The mod's base directory path
+function EmployeeManager:loadEmployeeTemplates(modDirectory)
+    self.employeeTemplates = {}
+    local xmlPath = modDirectory .. "xml/data/employees.xml"
+    local xmlFile = loadXMLFile("employeeTemplates", xmlPath)
+
+    if xmlFile == nil or xmlFile == 0 then
+        CustomUtils:error("[EmployeeManager] Failed to load employee templates from: %s", xmlPath)
+        return
+    end
+
+    local i = 0
+    while true do
+        local key = string.format("employees.employee(%d)", i)
+        local firstName = getXMLString(xmlFile, key .. "#firstName")
+        if firstName == nil then
+            break
+        end
+
+        local lastName = getXMLString(xmlFile, key .. "#lastName") or ""
+        local skillsKey = key .. ".skills"
+
+        local traitsStr = getXMLString(xmlFile, key .. "#traits")
+        local possibleTraits = {}
+        if traitsStr then
+            for trait in traitsStr:gmatch("[^,]+") do
+                trait = trait:match("^%s*(.-)%s*$")
+                if Employee.TRAITS[trait] then
+                    table.insert(possibleTraits, trait)
+                end
+            end
+        end
+
+        local template = {
+            firstName = firstName,
+            lastName = lastName,
+            drivingMin = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#drivingMin"), 1),
+            drivingMax = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#drivingMax"), 3),
+            harvestingMin = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#harvestingMin"), 1),
+            harvestingMax = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#harvestingMax"), 3),
+            technicalMin = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#technicalMin"), 1),
+            technicalMax = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#technicalMax"), 3),
+            possibleTraits = possibleTraits,
+        }
+
+        table.insert(self.employeeTemplates, template)
+        i = i + 1
+    end
+
+    delete(xmlFile)
+    CustomUtils:info("[EmployeeManager] Loaded %d employee templates", #self.employeeTemplates)
+end
+
+---Returns template names already used by current employees
+---@return table Set of "FirstName LastName" strings
+function EmployeeManager:getUsedTemplateNames()
+    local used = {}
+    for _, e in ipairs(self.employees) do
+        used[e.name] = true
+    end
+    return used
+end
+
+---Generates one employee from an unused template
+---@return table|nil The new employee, or nil if no templates available
+function EmployeeManager:generateEmployeeFromTemplate()
+    if #self.employeeTemplates == 0 then
+        CustomUtils:warning("[EmployeeManager] No templates loaded, cannot generate employee")
+        return nil
+    end
+
+    local usedNames = self:getUsedTemplateNames()
+    local available = {}
+    for _, tpl in ipairs(self.employeeTemplates) do
+        local fullName = tpl.firstName .. " " .. tpl.lastName
+        if not usedNames[fullName] then
+            table.insert(available, tpl)
+        end
+    end
+
+    if #available == 0 then
+        CustomUtils:warning("[EmployeeManager] All templates already in use (%d/%d)", #self.employees, #self.employeeTemplates)
+        return nil
+    end
+
+    local template = available[math.random(#available)]
     local id = #self.employees + 1
-    local firstName = self.firstNames[math.random(#self.firstNames)]
-    local lastName = self.lastNames[math.random(#self.lastNames)]
-    local name = string.format("%s %s", firstName, lastName)
+    local name = template.firstName .. " " .. template.lastName
 
     local skills = {
-        driving = math.random(1, 5),
-        harvesting = math.random(1, 5),
-        technical = math.random(1, 5)
+        driving = math.random(template.drivingMin, template.drivingMax),
+        harvesting = math.random(template.harvestingMin, template.harvestingMax),
+        technical = math.random(template.technicalMin, template.technicalMax),
     }
-    
+
     local employee = Employee.new(id, name, skills)
+
+    if template.possibleTraits and #template.possibleTraits > 0 then
+        employee.trait = template.possibleTraits[math.random(#template.possibleTraits)]
+    end
+
     table.insert(self.employees, employee)
-    CustomUtils:info("[EmployeeManager] Generated new employee: %s (ID: %d)", name, id)
-    
+    CustomUtils:info("[EmployeeManager] Generated employee from template: %s (ID: %d) [D:%d H:%d T:%d] Trait:%s",
+        name, id, skills.driving, skills.harvesting, skills.technical, employee.trait or "none")
+
     g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
     return employee
 end
 
-function EmployeeManager:hireEmployee(id)
-    local employee = self:getEmployeeById(id)
-    if employee then
-        employee.isHired = true
-        CustomUtils:info("[EmployeeManager] Hired employee: %s", employee.name)
-        g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
-    end
-end
-
-function EmployeeManager:fireEmployee(id)
-    local employee = self:getEmployeeById(id)
-    if employee then
-        employee.isHired = false
-        employee:unassignVehicle()
-        employee.currentJob = nil
-        CustomUtils:info("[EmployeeManager] Fired employee: %s", employee.name)
-        g_messageCenter:publish(MessageType.EMPLOYEE_REMOVED)
-    end
-end
-
-function EmployeeManager:getEmployeeById(id)
-    for _, employee in ipairs(self.employees) do
-        if employee.id == id then
-            return employee
+---Generates an initial pool of employees from templates
+---@param count number Number of employees to generate
+function EmployeeManager:generateInitialPool(count)
+    local generated = 0
+    for _ = 1, count do
+        local emp = self:generateEmployeeFromTemplate()
+        if emp == nil then
+            break
         end
+        generated = generated + 1
     end
-    return nil
+    CustomUtils:info("[EmployeeManager] Generated initial pool: %d employees", generated)
 end
 
-function EmployeeManager:getHiredEmployees()
-    local hired = {}
-    for _, employee in ipairs(self.employees) do
-        if employee.isHired then
-            table.insert(hired, employee)
-        end
+---Console command wrapper for generating a new candidate
+function EmployeeManager:consoleGenerateCandidate()
+    local emp = self:generateEmployeeFromTemplate()
+    if emp then
+        return string.format("Generated candidate: %s (ID: %d) [D:%d H:%d T:%d]",
+            emp.name, emp.id, emp.skills.driving, emp.skills.harvesting, emp.skills.technical)
     end
-    return hired
+    return "Failed to generate candidate (all templates may be in use)"
 end
-
-function EmployeeManager:getAvailableEmployees()
-    local available = {}
-    for _, employee in ipairs(self.employees) do
-        if not employee.isHired then
-            table.insert(available, employee)
-        end
-    end
-    return available
-end
-
---#endregion
-
---#region Field Configurations & Workflow
 
 function EmployeeManager:setFieldConfig(fieldId, cropName, assignments)
     self.fieldConfigs[fieldId] = {
@@ -316,10 +473,6 @@ function EmployeeManager:getAssignedEmployeeForStep(fieldId, stepName)
     return nil
 end
 
---#endregion
-
---#region Vehicle Management
-
 function EmployeeManager:assignVehicleToEmployee(employeeId, vehicleId)
     local employee = self:getEmployeeById(employeeId)
     local vehicle = self:getVehicleById(vehicleId)
@@ -333,8 +486,8 @@ function EmployeeManager:assignVehicleToEmployee(employeeId, vehicleId)
 end
 
 function EmployeeManager:getVehicleById(vehicleId)
-    if g_currentMission.vehicleSystem and g_currentMission.vehicleSystem.vehicles then
-        for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
+    if g_currentMission.vehicleSystem ~= nil and g_currentMission.vehicleSystem.vehicles ~= nil then
+        for _, vehicle in ipairs(g_currentMission.vehicleSystem.vehicles) do
             if vehicle.id == vehicleId then
                 return vehicle
             end
@@ -342,10 +495,6 @@ function EmployeeManager:getVehicleById(vehicleId)
     end
     return nil
 end
-
---#endregion
-
---#region Console Commands
 
 function EmployeeManager:consoleAssignVehicle(id, vehId)
     id = tonumber(id)
@@ -371,9 +520,25 @@ function EmployeeManager:consoleListEmployees()
     for _, e in ipairs(self.employees) do
         local status = e.isHired and "HIRED" or "AVAILABLE"
         local job = e.currentJob and e.currentJob.type or "IDLE"
-        print(string.format("[%d] %s | %s | Job: %s", e.id, e.name, status, job))
+        local traitStr = e.trait or "none"
+        local wage = e:getHourlyWage()
+        print(string.format("[%d] %s | %s | Job: %s | Trait: %s | Wage: $%.1f/h",
+            e.id, e.name, status, job, traitStr, wage))
     end
     return "End of list"
+end
+
+function EmployeeManager:consoleTrain(id, skillName)
+    id = tonumber(id)
+    if id == nil or skillName == nil then
+        return "Usage: emTrain <id> <skillName> (driving/harvesting/technical)"
+    end
+    local ok, reason = self:trainEmployee(id, skillName)
+    if ok then
+        local emp = self:getEmployeeById(id)
+        return string.format("Trained %s's %s to level %d", emp.name, skillName, emp.skills[skillName])
+    end
+    return "Training failed: " .. tostring(reason)
 end
 
 function EmployeeManager:consoleStartTask(id, taskName, fieldId)
@@ -411,10 +576,6 @@ function EmployeeManager:consoleDebugVehicles()
     return "End of list"
 end
 
---#endregion
-
---#region Save/Load & Sync
-
 function EmployeeManager:saveToXMLFile(xmlFile, key)
     CustomUtils:debug("[EmployeeManager] Saving employees to XML...")
     local empKey = key .. ".employees"
@@ -448,12 +609,21 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
         setXMLInt(xmlFile, base .. "#shiftStart", e.shiftStart or 6)
         setXMLInt(xmlFile, base .. "#shiftEnd", e.shiftEnd or 18)
 
+        if e.trait then
+            setXMLString(xmlFile, base .. "#trait", e.trait)
+        end
+        setXMLInt(xmlFile, base .. "#lastTrainingDay", e.lastTrainingDay or 0)
+        setXMLFloat(xmlFile, base .. "#totalWagesPaid", e.totalWagesPaid or 0)
+        setXMLInt(xmlFile, base .. "#tasksCompleted", e.tasksCompleted or 0)
+
         local queue = e.taskQueue or {}
         for qi, taskName in ipairs(queue) do
             local taskKey = string.format("%s.taskQueue.task(%d)", base, qi - 1)
             setXMLString(xmlFile, taskKey .. "#name", taskName)
         end
     end
+
+    setXMLInt(xmlFile, key .. ".poolState#lastRefreshDay", self.lastPoolRefreshDay or 0)
     return true
 end
 
@@ -508,6 +678,11 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         emp.shiftStart = Utils.getNoNil(getXMLInt(xmlFile, base .. "#shiftStart"), 6)
         emp.shiftEnd = Utils.getNoNil(getXMLInt(xmlFile, base .. "#shiftEnd"), 18)
 
+        emp.trait = getXMLString(xmlFile, base .. "#trait")
+        emp.lastTrainingDay = Utils.getNoNil(getXMLInt(xmlFile, base .. "#lastTrainingDay"), 0)
+        emp.totalWagesPaid = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#totalWagesPaid"), 0)
+        emp.tasksCompleted = Utils.getNoNil(getXMLInt(xmlFile, base .. "#tasksCompleted"), 0)
+
         emp.taskQueue = {}
         local qi = 0
         while true do
@@ -522,11 +697,14 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         i = i + 1
     end
 
+    self.lastPoolRefreshDay = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#lastRefreshDay"), 0)
+
+    CustomUtils:info("[EmployeeManager] Loaded %d employees from savegame", #self.employees)
+
     local numToGenerate = 10 - #self.employees
     if numToGenerate > 0 then
-        for j = 1, numToGenerate do
-            self:generateRandomEmployee()
-        end
+        CustomUtils:info("[EmployeeManager] Filling pool: generating %d candidates from templates", numToGenerate)
+        self:generateInitialPool(numToGenerate)
     end
 end
 
