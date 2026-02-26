@@ -19,6 +19,7 @@ source(g_modDirectory .. "scripts/gui/EMEmployeeFrame.lua")
 source(g_modDirectory .. "scripts/gui/EMWorkflowFrame.lua")
 source(g_modDirectory .. "scripts/gui/EMFieldFrame.lua")
 source(g_modDirectory .. "scripts/gui/EMVehicleFrame.lua")
+source(g_modDirectory .. "scripts/gui/EMTrainingDialog.lua")
 source(g_modDirectory .. "scripts/gui/EMGui.lua")
 
 source(g_modDirectory .. "scripts/managers/commandmanager.lua")
