@@ -99,5 +99,41 @@
         <text name="em_vehicle_implements" text="Outils Attachés" />
         <text name="em_vehicle_assigned_employee" text="Employé Assigné" />
         <text name="em_vehicle_empty" text="Vous ne possédez encore aucun véhicule." />
+
+        <text name="em_label_trait" text="Trait" />
+        <text name="em_trait_careful" text="Soigneux" />
+        <text name="em_trait_reckless" text="Casse-cou" />
+        <text name="em_trait_fuel_saver" text="Économe en carburant" />
+        <text name="em_trait_quick_learner" text="Apprenant rapide" />
+        <text name="em_trait_hard_worker" text="Bourreau de travail" />
+        <text name="em_trait_frugal" text="Frugal" />
+
+        <text name="em_wage_base" text="Base" />
+        <text name="em_wage_trait" text="Trait" />
+        <text name="em_wage_exp" text="Exp" />
+        <text name="em_wage_market" text="Marché" />
+
+        <text name="em_btn_train" text="Former" />
+        <text name="em_training_title" text="Centre de Formation" />
+        <text name="em_train_driving" text="Former Conduite" />
+        <text name="em_train_harvesting" text="Former Récolte" />
+        <text name="em_train_technical" text="Former Technique" />
+        <text name="em_training_available" text="Disponible" />
+        <text name="em_training_max" text="Niveau MAX" />
+        <text name="em_training_cooldown" text="Cooldown : %d jours" />
+        <text name="em_training_wait" text="Prochaine formation dans %d jours" />
+        <text name="em_training_ready" text="Prêt pour la formation" />
+        <text name="em_training_success" text="%s a amélioré %s au niveau %d !" />
+        <text name="em_training_fail_max_level" text="Compétence déjà au niveau maximum." />
+        <text name="em_training_fail_cooldown" text="Formation en cooldown. Attendez quelques jours." />
+        <text name="em_training_fail_not_enough_money" text="Pas assez d'argent pour la formation." />
+
+        <text name="em_pool_refresh_in" text="Renouvellement du pool dans %d jours" />
+
+        <text name="em_performance_title" text="Performance" />
+        <text name="em_stat_total_wages" text="Salaires totaux versés" />
+        <text name="em_stat_tasks_completed" text="Tâches complétées" />
+        <text name="em_stat_avg_wage" text="Salaire moyen" />
+        <text name="em_stat_efficiency" text="Efficacité (tâches/h)" />
     </texts>
 </l10n>
