@@ -20,7 +20,7 @@
     </Profile>
 
     <Profile name="EM_ListItem" extends="fs25_subCategoryListItem">
-        <width value="400px"/>
+        <width value="300px"/>
     </Profile>
 
     <Profile name="EM_ListItemTitle" extends="fs25_subCategoryListItemName">
@@ -37,7 +37,7 @@
     </Profile>
 
     <Profile name="EM_WorkflowListItem" extends="fs25_subCategoryListItem">
-        <width value="570px"/>
+        <width value="420px"/>
         <height value="52px"/>
     </Profile>
 
@@ -127,12 +127,12 @@
     </Profile>
 
     <Profile name="emMenuLeftColumn" extends="emptyPanel" with="anchorTopLeft">
-        <size value="780px 780px"/>
+        <size value="320px 780px"/>
     </Profile>
 
     <Profile name="emMenuRightColumn" extends="emptyPanel" with="anchorTopLeft">
-        <size value="580px 780px"/>
-        <position value="800px 0px"/>
+        <size value="420px 780px"/>
+        <position value="340px 0px"/>
     </Profile>
 
     <Profile name="emMenuColumnHeader" extends="emptyPanel" with="anchorTopLeft">
@@ -145,18 +145,18 @@
     </Profile>
 
     <Profile name="emMenuListItem" extends="fs25_subCategoryListItem">
-        <width value="760px"/>
+        <width value="300px"/>
         <height value="64px"/>
     </Profile>
 
     <Profile name="emMenuListItemTitle" extends="fs25_subCategoryListItemName">
-        <width value="500px"/>
-        <position value="60px -16px"/>
+        <width value="240px"/>
+        <position value="44px -16px"/>
     </Profile>
 
     <Profile name="emMenuListItemSubtitle" extends="fs25_subCategoryListItemName">
-        <width value="500px"/>
-        <position value="60px -40px"/>
+        <width value="240px"/>
+        <position value="44px -40px"/>
         <textSize value="18px"/>
         <textBold value="false"/>
         <textColor value="$preset_fs25_colorMainHighlight"/>
