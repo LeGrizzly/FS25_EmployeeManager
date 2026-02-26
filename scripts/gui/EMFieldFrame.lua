@@ -98,15 +98,33 @@ end
 
 function EMFieldFrame:buildOwnedFieldsList()
     local fields = {}
-    if g_fieldManager and g_fieldManager.fields then
-        local farmId = g_currentMission:getFarmId()
-        for _, field in pairs(g_fieldManager.fields) do
-            if field ~= nil and field.fieldId ~= nil then
-                local farmland = field:getFarmland()
-                if farmland and g_farmlandManager:getFarmlandOwner(farmland.id) == farmId then
-                    local area = field.fieldArea or 0
+    local farmId = g_currentMission:getFarmId()
+
+    if g_fieldManager ~= nil then
+        local allFields = {}
+        if g_fieldManager.getFields then
+            allFields = g_fieldManager:getFields()
+        elseif g_fieldManager.fields then
+            allFields = g_fieldManager.fields
+        end
+
+        for _, field in pairs(allFields) do
+            if field ~= nil then
+                local owner = nil
+                if field.getOwner then
+                    owner = field:getOwner()
+                elseif field.getFarmland then
+                    local farmland = field:getFarmland()
+                    if farmland then
+                        owner = g_farmlandManager:getFarmlandOwner(farmland.id)
+                    end
+                end
+
+                if owner == farmId then
+                    local fieldId = field.getId and field:getId() or field.fieldId or 0
+                    local area = field.getAreaHa and field:getAreaHa() or field.fieldArea or 0
                     table.insert(fields, {
-                        fieldId  = field.fieldId,
+                        fieldId  = fieldId,
                         area     = area,
                         fieldRef = field,
                     })
@@ -114,6 +132,7 @@ function EMFieldFrame:buildOwnedFieldsList()
             end
         end
     end
+
     table.sort(fields, function(a, b) return a.fieldId < b.fieldId end)
     return fields
 end

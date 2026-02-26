@@ -39,6 +39,12 @@ function EMEmployeeFrame:initialize()
         text        = g_i18n:getText("em_btn_workflow_editor"),
         callback    = function() self:onEditWorkflow() end,
     }
+    self.trainButtonInfo = {
+        profile     = "buttonActivate",
+        inputAction = InputAction.MENU_EXTRA_3,
+        text        = g_i18n:getText("em_btn_train"),
+        callback    = function() self:onTrainEmployee() end,
+    }
 
     local switcherTexts = {
         g_i18n:getText("em_list_new"),
@@ -96,12 +102,13 @@ function EMEmployeeFrame:populateCellForItemInSection(list, section, index, cell
     end
 
     if subtitleEl then
-        local wage = emp.getDailyWage and emp:getDailyWage() or 0
+        local hourly = emp.getHourlyWage and emp:getHourlyWage() or 0
+        local traitName = emp.getTraitName and emp:getTraitName() or ""
         if emp.isHired then
             local statusText = emp.currentJob and (emp.currentJob.workType or "Working") or "Idle"
-            subtitleEl:setText(string.format("%s | %s/day", statusText, g_i18n:formatMoney(wage, 0, true, false)))
+            subtitleEl:setText(string.format("%s | %s | %s/h", statusText, traitName, g_i18n:formatMoney(hourly, 0, true, false)))
         else
-            subtitleEl:setText(g_i18n:formatMoney(wage, 0, true, false) .. "/day")
+            subtitleEl:setText(string.format("%s | %s/h", traitName, g_i18n:formatMoney(hourly, 0, true, false)))
         end
     end
 
@@ -142,6 +149,16 @@ function EMEmployeeFrame:rebuildTable()
         self:clearDetails()
     end
 
+    if self.txtPoolRefresh then
+        if self.currentListType == EMEmployeeFrame.LIST_TYPE.AVAILABLE and g_employeeManager then
+            local days = g_employeeManager:getDaysUntilPoolRefresh()
+            self.txtPoolRefresh:setVisible(true)
+            self.txtPoolRefresh:setText(string.format(g_i18n:getText("em_pool_refresh_in"), days))
+        else
+            self.txtPoolRefresh:setVisible(false)
+        end
+    end
+
     self:updateMenuButtons()
 end
 
@@ -160,6 +177,15 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
     if self.txtStatus then
         local statusKey = emp.isHired and "em_status_hired" or "em_status_available"
         self.txtStatus:setText(g_i18n:getText(statusKey))
+    end
+
+    if self.txtTrait then
+        local traitName = emp.getTraitName and emp:getTraitName()
+        if traitName then
+            self.txtTrait:setText(traitName)
+        else
+            self.txtTrait:setText(g_i18n:getText("em_none"))
+        end
     end
 
     if self.txtAssignedField then
@@ -187,9 +213,30 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
     end
 
     if self.txtWage then
-        local wage = emp.getDailyWage and emp:getDailyWage() or 0
-        self.txtWage:setText(g_i18n:formatMoney(wage, 0, true, false))
+        local hourly = emp.getHourlyWage and emp:getHourlyWage() or 0
+        local marketMult = 1.0
+        if g_employeeManager then
+            marketMult = g_employeeManager:getMarketMultiplier()
+        end
+        local finalWage = hourly * marketMult
+        self.txtWage:setText(string.format("%s/h", g_i18n:formatMoney(finalWage, 0, true, false)))
     end
+
+    if self.txtWageBreakdown then
+        local base = emp.getBaseHourlyWage and emp:getBaseHourlyWage() or 0
+        local traitMult = emp.getTraitMultiplier and emp:getTraitMultiplier("wageMult") or 1.0
+        local expMult = math.min(1.25, 1.0 + ((emp.workTime or 0) / 500))
+        local marketMult = g_employeeManager and g_employeeManager:getMarketMultiplier() or 1.0
+        self.txtWageBreakdown:setText(string.format(
+            "%s: $%d | %s: x%.2f | %s: x%.2f | %s: x%.2f",
+            g_i18n:getText("em_wage_base"), base,
+            g_i18n:getText("em_wage_trait"), traitMult,
+            g_i18n:getText("em_wage_exp"), expMult,
+            g_i18n:getText("em_wage_market"), marketMult
+        ))
+    end
+
+    self:displayPerformanceStats(emp)
 end
 
 function EMEmployeeFrame:displaySkills(employee)
@@ -245,6 +292,37 @@ function EMEmployeeFrame:displayWorkStats(employee)
     end
 end
 
+function EMEmployeeFrame:displayPerformanceStats(employee)
+    if self.statTotalWages then
+        local total = employee.totalWagesPaid or 0
+        self.statTotalWages:setText(g_i18n:formatMoney(total, 0, true, false))
+    end
+
+    if self.statTasksCompleted then
+        self.statTasksCompleted:setText(tostring(employee.tasksCompleted or 0))
+    end
+
+    if self.statAvgWage then
+        local hours = employee.workTime or 0
+        local total = employee.totalWagesPaid or 0
+        if hours > 0 then
+            self.statAvgWage:setText(string.format("%s/h", g_i18n:formatMoney(total / hours, 0, true, false)))
+        else
+            self.statAvgWage:setText("--")
+        end
+    end
+
+    if self.statEfficiency then
+        local hours = employee.workTime or 0
+        local tasks = employee.tasksCompleted or 0
+        if hours > 0 then
+            self.statEfficiency:setText(string.format("%.2f", tasks / hours))
+        else
+            self.statEfficiency:setText("--")
+        end
+    end
+end
+
 function EMEmployeeFrame:clearDetails()
     if self.detailPanel then self.detailPanel:setVisible(false) end
 end
@@ -259,6 +337,7 @@ function EMEmployeeFrame:updateMenuButtons()
     elseif self.currentListType == EMEmployeeFrame.LIST_TYPE.HIRED and hasSelection then
         table.insert(self.menuButtonInfo, self.fireButtonInfo)
         table.insert(self.menuButtonInfo, self.editWorkflowButtonInfo)
+        table.insert(self.menuButtonInfo, self.trainButtonInfo)
     end
 
     self:setMenuButtonInfoDirty()
@@ -317,5 +396,15 @@ function EMEmployeeFrame:onEditWorkflow()
 
     if parentGui and parentGui.pagingElement then
         parentGui.pagingElement:setPage(2)
+    end
+end
+
+function EMEmployeeFrame:onTrainEmployee()
+    local emp = self:getSelectedEmployee()
+    if emp == nil then return end
+
+    if g_emTrainingDialog then
+        g_emTrainingDialog:setEmployee(emp)
+        g_gui:showDialog("EMTrainingDialog")
     end
 end
