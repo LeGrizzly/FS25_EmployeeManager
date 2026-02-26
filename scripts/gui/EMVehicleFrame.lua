@@ -99,20 +99,42 @@ end
 
 function EMVehicleFrame:buildOwnedVehiclesList()
     local vehicles = {}
-    if g_currentMission.vehicleSystem and g_currentMission.vehicleSystem.vehicles then
-        local farmId = g_currentMission:getFarmId()
-        for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
-            if vehicle.ownerFarmId == farmId and vehicle.getIsDrivable and vehicle:getIsDrivable() then
+    local farmId = g_currentMission:getFarmId()
+
+    if g_currentMission.vehicleSystem ~= nil and g_currentMission.vehicleSystem.vehicles ~= nil then
+        for _, vehicle in ipairs(g_currentMission.vehicleSystem.vehicles) do
+            local ownerFarmId = nil
+            if vehicle.getOwnerFarmId then
+                ownerFarmId = vehicle:getOwnerFarmId()
+            else
+                ownerFarmId = vehicle.ownerFarmId
+            end
+
+            local isEnterable = false
+            if vehicle.getIsEnterable then
+                isEnterable = vehicle:getIsEnterable()
+            elseif vehicle.getIsDrivable then
+                isEnterable = vehicle:getIsDrivable()
+            end
+
+            if ownerFarmId == farmId and isEnterable then
+                local name = "Vehicle"
+                if vehicle.getFullName then
+                    name = vehicle:getFullName()
+                elseif vehicle.getName then
+                    name = vehicle:getName()
+                end
                 local isAI = vehicle.getIsAIActive and vehicle:getIsAIActive() or false
                 table.insert(vehicles, {
                     id          = vehicle.id,
-                    name        = vehicle:getName(),
+                    name        = name,
                     vehicleRef  = vehicle,
                     isAIActive  = isAI,
                 })
             end
         end
     end
+
     table.sort(vehicles, function(a, b) return a.name < b.name end)
     return vehicles
 end

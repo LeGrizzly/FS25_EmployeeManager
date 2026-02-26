@@ -217,6 +217,9 @@ function EMWorkflowFrame:refreshData()
     end
     if self.fieldSelector then
         self.fieldSelector:setTexts(fieldTexts)
+        CustomUtils:info("[EMWorkflowFrame] fieldSelector set with %d entries", #fieldTexts)
+    else
+        CustomUtils:warning("[EMWorkflowFrame] fieldSelector is nil! Check XML id binding")
     end
 
     local vehicleTexts = { g_i18n:getText("em_none") }
@@ -225,9 +228,11 @@ function EMWorkflowFrame:refreshData()
     end
     if self.vehicleSelector then
         self.vehicleSelector:setTexts(vehicleTexts)
+        CustomUtils:info("[EMWorkflowFrame] vehicleSelector set with %d entries", #vehicleTexts)
+    else
+        CustomUtils:warning("[EMWorkflowFrame] vehicleSelector is nil! Check XML id binding")
     end
 
-    -- Select first employee
     self.employeeList:setSelectedIndex(1, true, 0)
     self:loadEmployeeData(self.hiredEmployees[1])
     self:updateMenuButtons()
@@ -485,39 +490,82 @@ end
 
 function EMWorkflowFrame:buildOwnedFieldsList()
     local fields = {}
-    if g_fieldManager and g_fieldManager.fields then
-        local farmId = g_currentMission:getFarmId()
-        for _, field in pairs(g_fieldManager.fields) do
-            if field ~= nil and field.fieldId ~= nil then
-                local farmland = field:getFarmland()
-                if farmland and g_farmlandManager:getFarmlandOwner(farmland.id) == farmId then
-                    local area = field.fieldArea or 0
+    local farmId = g_currentMission:getFarmId()
+
+    if g_fieldManager ~= nil then
+        local allFields = {}
+        if g_fieldManager.getFields then
+            allFields = g_fieldManager:getFields()
+        elseif g_fieldManager.fields then
+            allFields = g_fieldManager.fields
+        end
+
+        for _, field in pairs(allFields) do
+            if field ~= nil then
+                local owner = nil
+                if field.getOwner then
+                    owner = field:getOwner()
+                elseif field.getFarmland then
+                    local farmland = field:getFarmland()
+                    if farmland then
+                        owner = g_farmlandManager:getFarmlandOwner(farmland.id)
+                    end
+                end
+
+                if owner == farmId then
+                    local fieldId = field.getId and field:getId() or field.fieldId or 0
+                    local area = field.getAreaHa and field:getAreaHa() or field.fieldArea or 0
                     table.insert(fields, {
-                        id    = field.fieldId,
-                        label = string.format("Field %d (%.1f ha)", field.fieldId, area),
+                        id    = fieldId,
+                        label = string.format("Field %d (%.1f ha)", fieldId, area),
                     })
                 end
             end
         end
     end
+
     table.sort(fields, function(a, b) return a.id < b.id end)
+    CustomUtils:info("[EMWorkflowFrame] Found %d owned fields", #fields)
     return fields
 end
 
 function EMWorkflowFrame:buildOwnedVehiclesList()
     local vehicles = {}
-    if g_currentMission.vehicleSystem and g_currentMission.vehicleSystem.vehicles then
-        local farmId = g_currentMission:getFarmId()
-        for _, vehicle in pairs(g_currentMission.vehicleSystem.vehicles) do
-            if vehicle.ownerFarmId == farmId and vehicle.getIsDrivable and vehicle:getIsDrivable() then
+    local farmId = g_currentMission:getFarmId()
+
+    if g_currentMission.vehicleSystem ~= nil and g_currentMission.vehicleSystem.vehicles ~= nil then
+        for _, vehicle in ipairs(g_currentMission.vehicleSystem.vehicles) do
+            local ownerFarmId = nil
+            if vehicle.getOwnerFarmId then
+                ownerFarmId = vehicle:getOwnerFarmId()
+            else
+                ownerFarmId = vehicle.ownerFarmId
+            end
+
+            local isEnterable = false
+            if vehicle.getIsEnterable then
+                isEnterable = vehicle:getIsEnterable()
+            elseif vehicle.getIsDrivable then
+                isEnterable = vehicle:getIsDrivable()
+            end
+
+            if ownerFarmId == farmId and isEnterable then
+                local name = "Vehicle"
+                if vehicle.getFullName then
+                    name = vehicle:getFullName()
+                elseif vehicle.getName then
+                    name = vehicle:getName()
+                end
                 table.insert(vehicles, {
                     id    = vehicle.id,
-                    label = vehicle:getName(),
+                    label = name,
                 })
             end
         end
     end
+
     table.sort(vehicles, function(a, b) return a.label < b.label end)
+    CustomUtils:info("[EMWorkflowFrame] Found %d owned vehicles", #vehicles)
     return vehicles
 end
 
