@@ -129,6 +129,10 @@ function ModGui:loadTabbedMenu()
     CustomUtils:info("[ModGui] Loading EMGui (TabbedMenu)...")
     g_gui:loadGui(g_modDirectory .. "xml/gui/EMGui.xml",           "EMGui",           g_emGui)
 
+    CustomUtils:info("[ModGui] Loading EMTrainingDialog...")
+    g_emTrainingDialog = EMTrainingDialog.new()
+    g_gui:loadGui(g_modDirectory .. "xml/gui/EMTrainingDialog.xml", "EMTrainingDialog", g_emTrainingDialog)
+
     CustomUtils:info("[ModGui] TabbedMenu loaded successfully")
 end
 
