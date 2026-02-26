@@ -28,6 +28,7 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
     CustomUtils:info("Initializing Employee Manager Mod...")
 
     g_employeeManager = EmployeeManager:new(g_currentMission)
+    g_employeeManager:loadEmployeeTemplates(self.path)
 
     if SimpleStatusHUD then
         self.hud = SimpleStatusHUD.new()
@@ -38,11 +39,17 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
 
     g_employeeManager:onMissionInitialize(self.path)
 
+    FSBaseMission.saveSavegame = Utils.appendedFunction(FSBaseMission.saveSavegame, function()
+        ModController:saveEmployees()
+    end)
+
+    if savegame ~= nil then
+        self:loadEmployees()
+    end
+
     if #g_employeeManager.employees == 0 then
-        CustomUtils:info("Employee list empty, generating test employees...")
-        for i = 1, 5 do
-            g_employeeManager:generateRandomEmployee()
-        end
+        CustomUtils:info("[ModController] No employees found, generating initial pool...")
+        g_employeeManager:generateInitialPool(10)
     end
 
     if rawget(_G, 'g_modGui') ~= nil then
@@ -57,12 +64,49 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
     end
 end
 
-function ModController:onSavegameSave(savegame)
-    if g_employeeManager ~= nil and savegame ~= nil then
-        local xmlFile = savegame.xmlFile
-        local key = savegame.key .. ".FS25_EmployeeManager"
-        g_employeeManager:saveToXMLFile(xmlFile, key)
+function ModController:saveEmployees()
+    if g_employeeManager == nil then return end
+
+    local dir = g_currentMission.missionInfo.savegameDirectory
+    if dir == nil then
+        CustomUtils:warning("[ModController] No savegame directory, cannot save employees")
+        return
     end
+
+    local xmlPath = dir .. "/employeeManager.xml"
+    local xmlFile = createXMLFile("employeeManagerXML", xmlPath, "employeeManager")
+    if xmlFile == nil or xmlFile == 0 then
+        CustomUtils:error("[ModController] Failed to create save file: %s", xmlPath)
+        return
+    end
+
+    g_employeeManager:saveToXMLFile(xmlFile, "employeeManager")
+    saveXMLFile(xmlFile)
+    delete(xmlFile)
+    CustomUtils:info("[ModController] Saved %d employees to %s", #g_employeeManager.employees, xmlPath)
+end
+
+function ModController:loadEmployees()
+    if g_employeeManager == nil then return end
+
+    local dir = g_currentMission.missionInfo.savegameDirectory
+    if dir == nil then return end
+
+    local xmlPath = dir .. "/employeeManager.xml"
+    if not fileExists(xmlPath) then
+        CustomUtils:info("[ModController] No save file found at %s (first load or new game)", xmlPath)
+        return
+    end
+
+    local xmlFile = loadXMLFile("employeeManagerXML", xmlPath)
+    if xmlFile == nil or xmlFile == 0 then
+        CustomUtils:error("[ModController] Failed to load save file: %s", xmlPath)
+        return
+    end
+
+    g_employeeManager:loadFromXMLFile(xmlFile, "employeeManager")
+    delete(xmlFile)
+    CustomUtils:info("[ModController] Loaded %d employees from %s", #g_employeeManager.employees, xmlPath)
 end
 
 function ModController:deleteMap()
