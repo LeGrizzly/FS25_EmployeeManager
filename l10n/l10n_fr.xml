@@ -135,5 +135,21 @@
         <text name="em_stat_tasks_completed" text="Tâches complétées" />
         <text name="em_stat_avg_wage" text="Salaire moyen" />
         <text name="em_stat_efficiency" text="Efficacité (tâches/h)" />
+
+        <text name="em_stat_pending_wages" text="Salaire en attente" />
+        <text name="em_status_unpaid" text="IMPAYE" />
+        <text name="em_payroll_failed" text="Pas assez d'argent pour payer les employes! Ils arreteront de travailler." />
+        <text name="em_payroll_success" text="Paie mensuelle: %s deduit" />
+        <text name="em_unpaid_warning" text="Impaye - refuse de travailler" />
+        <text name="em_payroll_total" text="Paie mensuelle totale" />
+
+        <text name="em_stat_km_driven" text="Distance parcourue" />
+        <text name="em_stat_fatigue" text="Fatigue" />
+        <text name="em_status_on_break" text="En pause" />
+        <text name="em_status_exhausted" text="Epuise" />
+        <text name="em_status_tired" text="Fatigue" />
+        <text name="em_stat_parking" text="Place de parking" />
+        <text name="em_no_parking" text="Non assigne" />
+        <text name="em_status_returning" text="Retour au parking" />
     </texts>
 </l10n>

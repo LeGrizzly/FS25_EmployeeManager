@@ -135,5 +135,21 @@
         <text name="em_stat_tasks_completed" text="Tasks Completed" />
         <text name="em_stat_avg_wage" text="Avg Wage" />
         <text name="em_stat_efficiency" text="Efficiency (tasks/h)" />
+
+        <text name="em_stat_pending_wages" text="Pending Wages" />
+        <text name="em_status_unpaid" text="UNPAID" />
+        <text name="em_payroll_failed" text="Not enough money to pay employees! They will stop working." />
+        <text name="em_payroll_success" text="Monthly payroll: %s deducted" />
+        <text name="em_unpaid_warning" text="Unpaid - refuses to work until paid" />
+        <text name="em_payroll_total" text="Monthly Payroll Total" />
+
+        <text name="em_stat_km_driven" text="Distance Driven" />
+        <text name="em_stat_fatigue" text="Fatigue" />
+        <text name="em_status_on_break" text="On Break" />
+        <text name="em_status_exhausted" text="Exhausted" />
+        <text name="em_status_tired" text="Tired" />
+        <text name="em_stat_parking" text="Parking Spot" />
+        <text name="em_no_parking" text="Not assigned" />
+        <text name="em_status_returning" text="Returning to parking" />
     </texts>
 </l10n>
