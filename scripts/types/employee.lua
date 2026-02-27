@@ -11,6 +11,19 @@ Employee.TRAITS = {
     FRUGAL        = { nameKey = "em_trait_frugal",        wageMult = 0.90 },
 }
 
+Employee.XP_RATES = {
+    HARVEST   = { driving = 10, harvesting = 15, technical = 5 },
+    SOW       = { driving = 10, harvesting = 8,  technical = 5 },
+    PLOW      = { driving = 12, harvesting = 0,  technical = 8 },
+    CULTIVATE = { driving = 12, harvesting = 0,  technical = 8 },
+    FERTILIZE = { driving = 8,  harvesting = 0,  technical = 10 },
+    LIME      = { driving = 8,  harvesting = 0,  technical = 10 },
+    MOW       = { driving = 8,  harvesting = 10, technical = 5 },
+    TEDDER    = { driving = 8,  harvesting = 10, technical = 5 },
+    WINDROWER = { driving = 8,  harvesting = 10, technical = 5 },
+    DEFAULT   = { driving = 10, harvesting = 0,  technical = 5 },
+}
+
 function Employee.new(id, name, skills)
     local self = setmetatable({}, Employee_mt)
     self.id = id or 0
@@ -37,6 +50,18 @@ function Employee.new(id, name, skills)
     self.lastTrainingDay = 0
     self.totalWagesPaid = 0
     self.tasksCompleted = 0
+    self.pendingWages = 0
+    self.isUnpaid = false
+
+    self.lastVehicleX = nil
+    self.lastVehicleZ = nil
+
+    self.dailyHoursWorked = 0
+    self.fatigueLevel = 0
+    self.isOnBreak = false
+    self.breakEndTime = nil
+    self.breakTakenToday = false
+
     return self
 end
 
@@ -74,13 +99,11 @@ function Employee:unassignVehicle()
 end
 
 function Employee:getDailyWage()
-    local baseWage = 50
-    local skillSum = (self.skills.driving or 0) + (self.skills.harvesting or 0) + (self.skills.technical or 0)
-    return baseWage + (skillSum * 10)
+    return self:getHourlyWage() * 12
 end
 
 function Employee:getBaseHourlyWage()
-    return 15 + ((self.skills.driving or 0) * 2) + ((self.skills.harvesting or 0) * 2) + ((self.skills.technical or 0) * 1)
+    return 5 + ((self.skills.driving or 0) * 1) + ((self.skills.harvesting or 0) * 1) + ((self.skills.technical or 0) * 0.5)
 end
 
 function Employee:getHourlyWage()
@@ -137,9 +160,43 @@ function Employee:updateWorkTime(dt)
     if self.isHired and self.currentJob ~= nil then
         local hours = dt / (1000 * 60 * 60)
         self.workTime = self.workTime + hours
+        self.dailyHoursWorked = self.dailyHoursWorked + hours
+        self.fatigueLevel = math.min(100, self.dailyHoursWorked / 8 * 100)
         return hours
     end
     return 0
+end
+
+function Employee:canWork()
+    if self.isOnBreak then return false end
+    if self.dailyHoursWorked >= 8 then return false end
+    return true
+end
+
+function Employee:isWithinShift(currentHour)
+    local s = self.shiftStart or 6
+    local e = self.shiftEnd or 18
+    if s < e then
+        return currentHour >= s and currentHour < e
+    else
+        return currentHour >= s or currentHour < e
+    end
+end
+
+function Employee:getFatigueMultiplier()
+    if self.dailyHoursWorked <= 6 then
+        return 1.0
+    end
+    local overtime = math.min(2, self.dailyHoursWorked - 6)
+    return 1.0 - (overtime * 0.075)
+end
+
+function Employee:resetDailyFatigue()
+    self.dailyHoursWorked = 0
+    self.fatigueLevel = 0
+    self.isOnBreak = false
+    self.breakEndTime = nil
+    self.breakTakenToday = false
 end
 
 function Employee:getFullName()
@@ -169,6 +226,11 @@ function Employee:toTable()
         lastTrainingDay = self.lastTrainingDay,
         totalWagesPaid = self.totalWagesPaid,
         tasksCompleted = self.tasksCompleted,
+        pendingWages = self.pendingWages,
+        isUnpaid = self.isUnpaid,
+        dailyHoursWorked = self.dailyHoursWorked,
+        fatigueLevel = self.fatigueLevel,
+        isOnBreak = self.isOnBreak,
     }
 end
 
@@ -187,6 +249,11 @@ function Employee.fromTable(data)
     e.lastTrainingDay = data.lastTrainingDay or 0
     e.totalWagesPaid = data.totalWagesPaid or 0
     e.tasksCompleted = data.tasksCompleted or 0
+    e.pendingWages = data.pendingWages or 0
+    e.isUnpaid = data.isUnpaid or false
+    e.dailyHoursWorked = data.dailyHoursWorked or 0
+    e.fatigueLevel = data.fatigueLevel or 0
+    e.isOnBreak = data.isOnBreak or false
     return e
 end
 
@@ -206,6 +273,18 @@ function Employee:writeStream(streamId, connection)
     streamWriteInt32(streamId, self.lastTrainingDay or 0)
     streamWriteFloat32(streamId, self.totalWagesPaid or 0)
     streamWriteInt32(streamId, self.tasksCompleted or 0)
+    streamWriteFloat32(streamId, self.pendingWages or 0)
+    streamWriteBool(streamId, self.isUnpaid or false)
+
+    streamWriteFloat32(streamId, self.workTime or 0)
+    streamWriteFloat32(streamId, self.kmDriven or 0)
+    streamWriteFloat32(streamId, self.skillXP.driving or 0)
+    streamWriteFloat32(streamId, self.skillXP.harvesting or 0)
+    streamWriteFloat32(streamId, self.skillXP.technical or 0)
+
+    streamWriteFloat32(streamId, self.dailyHoursWorked or 0)
+    streamWriteFloat32(streamId, self.fatigueLevel or 0)
+    streamWriteBool(streamId, self.isOnBreak or false)
 end
 
 function Employee:readStream(streamId, connection)
@@ -230,6 +309,18 @@ function Employee:readStream(streamId, connection)
     self.lastTrainingDay = streamReadInt32(streamId)
     self.totalWagesPaid = streamReadFloat32(streamId)
     self.tasksCompleted = streamReadInt32(streamId)
+    self.pendingWages = streamReadFloat32(streamId)
+    self.isUnpaid = streamReadBool(streamId)
+
+    self.workTime = streamReadFloat32(streamId)
+    self.kmDriven = streamReadFloat32(streamId)
+    self.skillXP.driving = streamReadFloat32(streamId)
+    self.skillXP.harvesting = streamReadFloat32(streamId)
+    self.skillXP.technical = streamReadFloat32(streamId)
+
+    self.dailyHoursWorked = streamReadFloat32(streamId)
+    self.fatigueLevel = streamReadFloat32(streamId)
+    self.isOnBreak = streamReadBool(streamId)
 end
 
 return Employee
