@@ -64,6 +64,11 @@ function SimpleStatusHUD:draw()
                         color = {1, 1, 0, 1}
                     end
 
+                    if emp.currentJob and emp.currentJob.type == "RETURN_TO_PARKING" then
+                        status = g_i18n:getText("em_status_returning")
+                        color = {0.5, 0.8, 1, 1}
+                    end
+
                     setTextColor(unpack(color))
                     renderText(x + 0.08, y, 0.012, status)
 
@@ -77,7 +82,32 @@ function SimpleStatusHUD:draw()
                             y = y - lineHeight
                         end
                     end
-                    
+
+                    if emp.isOnBreak then
+                        setTextColor(1, 1, 0, 1)
+                        renderText(x + 0.01, y, 0.010, g_i18n:getText("em_status_on_break"))
+                        y = y - lineHeight
+                    elseif (emp.fatigueLevel or 0) >= 50 then
+                        local fatigue = emp.fatigueLevel or 0
+                        if fatigue >= 80 then
+                            setTextColor(1, 0.2, 0.2, 1)
+                        else
+                            setTextColor(1, 0.7, 0, 1)
+                        end
+                        renderText(x + 0.01, y, 0.010, string.format("%s: %.0f%%", g_i18n:getText("em_stat_fatigue"), fatigue))
+                        y = y - lineHeight
+                    end
+
+                    if emp.isUnpaid then
+                        setTextColor(1, 0.2, 0.2, 1)
+                        renderText(x + 0.01, y, 0.010, g_i18n:getText("em_status_unpaid"))
+                        y = y - lineHeight
+                    elseif (emp.pendingWages or 0) > 0 then
+                        setTextColor(1, 1, 0, 1)
+                        renderText(x + 0.01, y, 0.010, string.format("Pending: %s", g_i18n:formatMoney(emp.pendingWages, 0, true, false)))
+                        y = y - lineHeight
+                    end
+
                     y = y - (lineHeight * 0.5)
                 end
             end

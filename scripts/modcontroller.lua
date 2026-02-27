@@ -28,6 +28,7 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
     CustomUtils:info("Initializing Employee Manager Mod...")
 
     g_employeeManager = EmployeeManager:new(g_currentMission)
+    g_parkingManager = ParkingManager:new()
     g_employeeManager:loadEmployeeTemplates(self.path)
 
     if SimpleStatusHUD then
@@ -37,7 +38,14 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
         addConsoleCommand("emMenuWorkflow", "Opens the Workflow Editor Menu", "consoleMenuWorkflow", self)
     end
 
+    if g_currentMission and g_helperManager then
+        local minHelpers = math.max(g_currentMission.maxNumHirables or 30, 50)
+        g_currentMission.maxNumHirables = minHelpers
+        CustomUtils:info("[ModController] Set maxNumHirables to %d", minHelpers)
+    end
+
     g_employeeManager:onMissionInitialize(self.path)
+    g_employeeManager:subscribeEvents()
 
     FSBaseMission.saveSavegame = Utils.appendedFunction(FSBaseMission.saveSavegame, function()
         ModController:saveEmployees()
@@ -116,13 +124,19 @@ function ModController:deleteMap()
     end
 
     if g_employeeManager then
+        g_employeeManager:unsubscribeEvents()
         g_employeeManager = nil
     end
+    g_parkingManager = nil
 end
 
 function ModController:update(dt)
     if g_employeeManager and g_employeeManager.update then
         g_employeeManager:update(dt)
+    end
+
+    if g_currentMission and g_helperManager and g_currentMission.maxNumHirables < g_helperManager.numHelpers then
+        g_currentMission.maxNumHirables = g_helperManager.numHelpers
     end
 end
 
