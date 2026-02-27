@@ -227,12 +227,30 @@ function JobManager:ensureEquipment(vehicle, workType, callback)
     end
 
     local attachedImplements = vehicle:getAttachedImplements()
+    local hasAttachedTool = #attachedImplements > 0
+
     for _, implement in ipairs(attachedImplements) do
         local obj = implement.object
         if obj ~= nil and obj.getIsAIJobSupported ~= nil and obj:getIsAIJobSupported("AIJobFieldWork") then
             callback(true)
             return
         end
+    end
+
+    if hasAttachedTool then
+        CustomUtils:warning("[JobManager] Vehicle already has an implement attached but it doesn't support %s. Cannot attach another.", workType)
+        callback(false)
+        return
+    end
+
+    local parkedTool = self:findToolInParking(categoryName, vehicle)
+    if parkedTool then
+        CustomUtils:info("[JobManager] Found owned tool %s in parking, attaching...", parkedTool:getName())
+        if vehicle.attachImplement then
+            vehicle:attachImplement(parkedTool, 1, 1)
+        end
+        callback(true)
+        return
     end
 
     CustomUtils:info("[JobManager] No tool found for %s. Renting equipment...", workType)
@@ -358,6 +376,99 @@ function JobManager:stopJob(employee)
     return true
 end
 
+function JobManager:handleFieldworkCompletion(employee)
+    if employee.temporaryRental then
+        g_employeeManager:returnRentedEquipment(employee)
+    end
+
+    if g_employeeManager then
+        g_employeeManager:onJobCompleted(employee)
+    end
+
+    if g_parkingManager and employee.assignedVehicleId then
+        local spot = g_parkingManager:getSpotForVehicle(employee.assignedVehicleId)
+        if spot then
+            local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+            if vehicle and vehicle.rootNode then
+                local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+                local dx = vx - spot.x
+                local dz = vz - spot.z
+                local dist = math.sqrt(dx * dx + dz * dz)
+
+                if dist > 20 then
+                    CustomUtils:info("[JobManager] %s returning to parking '%s' (%.0fm away)", employee.name, spot.name, dist)
+                    self:startReturnToParking(employee, vehicle, spot)
+                    return
+                end
+            end
+        end
+    end
+
+    employee.currentJob = nil
+end
+
+function JobManager:startReturnToParking(employee, vehicle, spot)
+    local aiJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.GOTO)
+    if not aiJob then
+        CustomUtils:error("[JobManager] Failed to create GOTO job for parking return")
+        employee.currentJob = nil
+        return
+    end
+
+    local farmId = g_currentMission:getFarmId()
+    aiJob:applyCurrentState(vehicle, g_currentMission, farmId, false)
+    aiJob.positionAngleParameter:setPosition(spot.x, spot.z)
+    aiJob.positionAngleParameter:setAngle(spot.angle or 0)
+    aiJob:setValues()
+
+    local validateSuccess, errorMessage = aiJob:validate(farmId)
+    if validateSuccess then
+        g_currentMission.aiSystem:startJob(aiJob, farmId)
+        employee.currentJob = {
+            aiJobId = aiJob.jobId,
+            type = "RETURN_TO_PARKING",
+            spotId = spot.id,
+            startTime = g_currentMission.time,
+        }
+        CustomUtils:info("[JobManager] %s is now returning to parking '%s'", employee.name, spot.name)
+    else
+        CustomUtils:error("[JobManager] Parking return GOTO failed validation: %s", tostring(errorMessage))
+        employee.currentJob = nil
+    end
+end
+
+function JobManager:handleParkingArrival(employee)
+    local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+    if vehicle then
+        if vehicle.stopMotor and vehicle:getIsMotorStarted() then
+            vehicle:stopMotor()
+            CustomUtils:info("[JobManager] %s arrived at parking, motor stopped", employee.name)
+        end
+    end
+
+    employee.currentJob = nil
+    if g_employeeManager then
+        g_employeeManager:onJobCompleted(employee)
+    end
+end
+
+function JobManager:findToolInParking(categoryName, vehicle)
+    if not g_parkingManager then return nil end
+
+    local tool, spot = g_parkingManager:findToolInParking(categoryName)
+    if tool and spot and vehicle and vehicle.rootNode then
+        local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+        local dx = vx - spot.x
+        local dz = vz - spot.z
+        local dist = math.sqrt(dx * dx + dz * dz)
+
+        if dist < 50 then
+            return tool
+        end
+    end
+    return nil
+end
+
 function JobManager:update(dt)
     for _, employee in ipairs(g_employeeManager.employees) do
         if employee.currentJob and employee.currentJob.aiJobId then
@@ -386,6 +497,10 @@ function JobManager:update(dt)
                     local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
                     local pending = employee.pendingJob
                     self:startFieldWorkJob(employee, vehicle, pending.fieldId, pending.workType)
+                elseif employee.currentJob.type == "RETURN_TO_PARKING" then
+                    self:handleParkingArrival(employee)
+                elseif employee.currentJob.type == "FIELDWORK" then
+                    self:handleFieldworkCompletion(employee)
                 else
                     employee.currentJob = nil
                     if g_employeeManager then
