@@ -23,6 +23,9 @@ function EmployeeManager:new(mission)
     self.POOL_MAX = 12
     self.lastDayChecked = 0
 
+    self.lastPaymentPeriod = 0
+    self.payrollRetryCount = 0
+
     CustomUtils:debug("[EmployeeManager] Initialized")
     return self
 end
@@ -53,6 +56,11 @@ function EmployeeManager:onMissionInitialize(baseDirectory)
         g_commandManager:add('emRentVehicle', 'Rents a vehicle for an employee by store item name', 'emRentVehicle <empId> <storeItemName>', 'consoleRentVehicle', self)
         g_commandManager:add('emClearAll', 'Clears all employees (DEBUG)', 'emClearAll', 'consoleClearAll', self)
         g_commandManager:add('emTrain', 'Trains an employee skill', 'emTrain <id> <skillName>', 'consoleTrain', self)
+
+        g_commandManager:add('emParkingAdd', 'Adds a parking spot at player position', 'emParkingAdd <name>', 'consoleParkingAdd', self)
+        g_commandManager:add('emParkingList', 'Lists all parking spots', 'emParkingList', 'consoleParkingList', self)
+        g_commandManager:add('emParkingRemove', 'Removes a parking spot', 'emParkingRemove <id>', 'consoleParkingRemove', self)
+        g_commandManager:add('emParkingAssign', 'Assigns a vehicle to a parking spot', 'emParkingAssign <spotId> <vehicleId>', 'consoleParkingAssign', self)
     else
         CustomUtils:error("[EmployeeManager] CommandManager not found!")
     end
@@ -66,55 +74,63 @@ function EmployeeManager:update(dt)
         self.courseManager:update(dt)
     end
 
-    local farmId = g_currentMission:getFarmId()
     local marketMult = self:getMarketMultiplier()
-    local totalWagesToPay = 0
 
     for _, employee in ipairs(self.employees) do
-        if employee.isHired and employee.currentJob ~= nil then
+        if employee.isHired and employee.isUnpaid then
+            if employee.currentJob then
+                self.jobManager:stopJob(employee)
+                CustomUtils:info("[EmployeeManager] %s stopped working (unpaid)", employee.name)
+            end
+        elseif employee.isHired and employee.currentJob ~= nil then
             local hoursWorked = employee:updateWorkTime(dt)
             if hoursWorked > 0 then
+                local fatigueMult = employee:getFatigueMultiplier()
                 local wage = employee:getHourlyWage() * marketMult * hoursWorked
-                totalWagesToPay = totalWagesToPay + wage
-                employee.totalWagesPaid = (employee.totalWagesPaid or 0) + wage
+                employee.pendingWages = (employee.pendingWages or 0) + wage
 
-                employee:addExperience("driving", hoursWorked * 10)
-                if employee.currentJob.type == "FIELDWORK" and employee.currentJob.workType == "HARVEST" then
-                    employee:addExperience("harvesting", hoursWorked * 15)
-                end
-                employee:addExperience("technical", hoursWorked * 5)
-            end
-        end
-
-        if employee.isHired and employee.isAutonomous and employee.currentJob == nil and employee.targetCrop ~= nil and employee.targetFieldId ~= nil then
-
-            employee.decisionTimer = (employee.decisionTimer or 0) + dt
-            if employee.decisionTimer > 5000 then
-                employee.decisionTimer = 0
-
-                local field = g_fieldManager:getFieldById(employee.targetFieldId)
-                if field then
-                    local nextStep, reason = self.cropManager:getNextStep(field, employee.targetCrop)
-                    if nextStep ~= nil and nextStep ~= "WAIT" then
-                        CustomUtils:info("[EmployeeManager] %s deciding next step for %s on field %d: %s (%s)",
-                            employee.name, employee.targetCrop, employee.targetFieldId, nextStep, reason)
-
-                        self.jobManager:startFieldWork(employee, employee.targetFieldId, nextStep)
-                    else
-                        CustomUtils:debug("[EmployeeManager] %s is WAITING on field %d (%s): %s",
-                            employee.name, employee.targetFieldId, employee.targetCrop, reason or "No action needed")
+                local workType = employee.currentJob.workType or "DEFAULT"
+                local xpRates = Employee.XP_RATES[workType] or Employee.XP_RATES.DEFAULT
+                for skill, rate in pairs(xpRates) do
+                    if rate > 0 then
+                        employee:addExperience(skill, hoursWorked * rate * fatigueMult)
                     end
-                else
-                    CustomUtils:error("[EmployeeManager] Target field %d not found for employee %s", employee.targetFieldId, employee.name)
-                    employee.isAutonomous = false
+                end
+
+                self:trackVehicleDistance(employee)
+            end
+        end
+
+        if employee.isHired and not employee.isUnpaid and employee.isAutonomous and employee.currentJob == nil and employee.targetCrop ~= nil and employee.targetFieldId ~= nil then
+            if not employee:canWork() then
+                -- skip: on break or exhausted
+            elseif g_currentMission and g_currentMission.environment and not employee:isWithinShift(g_currentMission.environment.currentHour or 0) then
+                -- skip: outside shift
+            else
+                employee.decisionTimer = (employee.decisionTimer or 0) + dt
+
+                if employee.decisionTimer > 5000 then
+                    employee.decisionTimer = 0
+
+                    local field = g_fieldManager:getFieldById(employee.targetFieldId)
+                    if field then
+                        local nextStep, reason = self.cropManager:getNextStep(field, employee.targetCrop)
+                        if nextStep ~= nil and nextStep ~= "WAIT" then
+                            CustomUtils:info("[EmployeeManager] %s deciding next step for %s on field %d: %s (%s)",
+                                employee.name, employee.targetCrop, employee.targetFieldId, nextStep, reason)
+
+                            self.jobManager:startFieldWork(employee, employee.targetFieldId, nextStep)
+                        else
+                            CustomUtils:debug("[EmployeeManager] %s is WAITING on field %d (%s): %s",
+                                employee.name, employee.targetFieldId, employee.targetCrop, reason or "No action needed")
+                        end
+                    else
+                        CustomUtils:error("[EmployeeManager] Target field %d not found for employee %s", employee.targetFieldId, employee.name)
+                        employee.isAutonomous = false
+                    end
                 end
             end
         end
-    end
-
-    if totalWagesToPay > 0 then
-        local moneyType = MoneyType.WORKER_WAGES or MoneyType.OTHER
-        g_currentMission:addMoney(-totalWagesToPay, farmId, moneyType, true)
     end
 
     self:checkPoolRefresh()
@@ -141,6 +157,160 @@ function EmployeeManager:checkPoolRefresh()
     if (currentDay - self.lastPoolRefreshDay) >= self.POOL_REFRESH_DAYS then
         self:refreshCandidatePool()
         self.lastPoolRefreshDay = currentDay
+    end
+end
+
+function EmployeeManager:subscribeEvents()
+    g_messageCenter:subscribe(MessageType.PERIOD_CHANGED, self.onPeriodChanged, self)
+    g_messageCenter:subscribe(MessageType.DAY_CHANGED, self.onDayChanged, self)
+    g_messageCenter:subscribe(MessageType.HOUR_CHANGED, self.onHourChanged, self)
+    CustomUtils:info("[EmployeeManager] Subscribed to PERIOD_CHANGED, DAY_CHANGED, and HOUR_CHANGED events")
+end
+
+function EmployeeManager:unsubscribeEvents()
+    g_messageCenter:unsubscribe(MessageType.PERIOD_CHANGED, self)
+    g_messageCenter:unsubscribe(MessageType.DAY_CHANGED, self)
+    g_messageCenter:unsubscribe(MessageType.HOUR_CHANGED, self)
+    CustomUtils:info("[EmployeeManager] Unsubscribed from events")
+end
+
+function EmployeeManager:onPeriodChanged(period)
+    if g_server == nil then return end
+    self.lastPaymentPeriod = period or 0
+    self.payrollRetryCount = 0
+    self:processMonthlyPayroll()
+end
+
+function EmployeeManager:onDayChanged(day)
+    if g_server == nil then return end
+
+    for _, emp in ipairs(self.employees) do
+        if emp.isHired then
+            emp:resetDailyFatigue()
+        end
+    end
+
+    local hasUnpaid = false
+    for _, emp in ipairs(self.employees) do
+        if emp.isHired and emp.isUnpaid then
+            hasUnpaid = true
+            break
+        end
+    end
+    if hasUnpaid and self.payrollRetryCount < 3 then
+        self.payrollRetryCount = self.payrollRetryCount + 1
+        CustomUtils:info("[EmployeeManager] Payroll retry %d/3", self.payrollRetryCount)
+        self:processMonthlyPayroll()
+    end
+end
+
+function EmployeeManager:trackVehicleDistance(employee)
+    local vehicle = self:getVehicleById(employee.assignedVehicleId)
+    if vehicle == nil or vehicle.rootNode == nil then
+        employee.lastVehicleX = nil
+        employee.lastVehicleZ = nil
+        return
+    end
+
+    local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+    if employee.lastVehicleX ~= nil and employee.lastVehicleZ ~= nil then
+        local dx = vx - employee.lastVehicleX
+        local dz = vz - employee.lastVehicleZ
+        local dist = math.sqrt(dx * dx + dz * dz)
+
+        if dist > 0.5 and dist < 500 then
+            local km = dist / 1000
+            employee.kmDriven = (employee.kmDriven or 0) + km
+            employee:addExperience("driving", km)
+        end
+    end
+
+    employee.lastVehicleX = vx
+    employee.lastVehicleZ = vz
+end
+
+function EmployeeManager:onHourChanged()
+    if g_server == nil then return end
+    if g_currentMission == nil or g_currentMission.environment == nil then return end
+
+    local currentHour = g_currentMission.environment.currentHour or 0
+
+    for _, employee in ipairs(self.employees) do
+        -- if not employee.isHired then
+        if employee.isOnBreak then
+            if employee.breakEndTime ~= nil and g_currentMission.time >= employee.breakEndTime then
+                employee.isOnBreak = false
+                employee.breakEndTime = nil
+                CustomUtils:info("[EmployeeManager] %s break is over, ready to work", employee.name)
+            end
+        elseif employee.currentJob ~= nil then
+            local jobType = employee.currentJob.type
+            if jobType ~= "TRANSIT" and jobType ~= "RETURN_TO_PARKING" and jobType ~= "PREPARING" then
+                if not employee:isWithinShift(currentHour) then
+                    self.jobManager:stopJob(employee)
+                    CustomUtils:info("[EmployeeManager] %s stopped: outside shift hours (%d:00, shift %d-%d)",
+                        employee.name, currentHour, employee.shiftStart, employee.shiftEnd)
+                end
+
+                if employee.dailyHoursWorked >= 4 and not employee.breakTakenToday then
+                    employee.breakTakenToday = true
+                    employee.isOnBreak = true
+                    employee.breakEndTime = g_currentMission.time + (30 * 60 * 1000)
+                    self.jobManager:stopJob(employee)
+                    CustomUtils:info("[EmployeeManager] %s taking 30min break after %.1fh worked", employee.name, employee.dailyHoursWorked)
+                end
+
+                if employee.dailyHoursWorked >= 8 then
+                    self.jobManager:stopJob(employee)
+                    CustomUtils:info("[EmployeeManager] %s exhausted after %.1fh, stopping until tomorrow", employee.name, employee.dailyHoursWorked)
+                end
+            end
+        end
+    end
+end
+
+function EmployeeManager:processMonthlyPayroll()
+    if g_server == nil then return end
+
+    local farmId = g_currentMission:getFarmId()
+    local balance = g_currentMission:getMoney(farmId)
+    local totalPending = 0
+
+    for _, emp in ipairs(self.employees) do
+        if emp.isHired then
+            totalPending = totalPending + (emp.pendingWages or 0)
+        end
+    end
+
+    if totalPending <= 0 then return end
+
+    if balance >= totalPending then
+        local moneyType = MoneyType.WORKER_WAGES or MoneyType.OTHER
+        g_currentMission:addMoney(-totalPending, farmId, moneyType, true)
+
+        for _, emp in ipairs(self.employees) do
+            if emp.isHired then
+                emp.totalWagesPaid = (emp.totalWagesPaid or 0) + (emp.pendingWages or 0)
+                emp.pendingWages = 0
+                emp.isUnpaid = false
+            end
+        end
+
+        CustomUtils:info("[EmployeeManager] Monthly payroll: $%.2f deducted", totalPending)
+        if g_currentMission.hud ~= nil then
+            g_currentMission:showBlinkingWarning(string.format(g_i18n:getText("em_payroll_success"), g_i18n:formatMoney(totalPending, 0, true, false)), 5000)
+        end
+    else
+        for _, emp in ipairs(self.employees) do
+            if emp.isHired then
+                emp.isUnpaid = true
+            end
+        end
+
+        CustomUtils:warning("[EmployeeManager] Payroll FAILED: need $%.2f, have $%.2f", totalPending, balance)
+        if g_currentMission.hud ~= nil then
+            g_currentMission:showBlinkingWarning(g_i18n:getText("em_payroll_failed"), 8000)
+        end
     end
 end
 
@@ -308,7 +478,17 @@ function EmployeeManager:fireEmployee(id)
 
         self:returnRentedEquipment(employee)
 
+        if (employee.pendingWages or 0) > 0 then
+            local farmId = g_currentMission:getFarmId()
+            local moneyType = MoneyType.WORKER_WAGES or MoneyType.OTHER
+            g_currentMission:addMoney(-employee.pendingWages, farmId, moneyType, true)
+            employee.totalWagesPaid = (employee.totalWagesPaid or 0) + employee.pendingWages
+            CustomUtils:info("[EmployeeManager] Paid $%.2f pending wages to %s on termination", employee.pendingWages, employee.name)
+            employee.pendingWages = 0
+        end
+
         employee.isHired = false
+        employee.isUnpaid = false
         employee:unassignVehicle()
         employee.assignedField = nil
         employee.workTime = 0
@@ -476,9 +656,13 @@ end
 function EmployeeManager:assignVehicleToEmployee(employeeId, vehicleId)
     local employee = self:getEmployeeById(employeeId)
     local vehicle = self:getVehicleById(vehicleId)
-    
+
     if employee and vehicle then
         employee:assignVehicle(vehicle)
+
+        if g_parkingManager then
+            g_parkingManager:autoRecordSpot(vehicleId)
+        end
         CustomUtils:info("[EmployeeManager] Assigned vehicle %s to employee %s", vehicle:getName(), employee.name)
         return true
     end
@@ -522,8 +706,14 @@ function EmployeeManager:consoleListEmployees()
         local job = e.currentJob and e.currentJob.type or "IDLE"
         local traitStr = e.trait or "none"
         local wage = e:getHourlyWage()
-        print(string.format("[%d] %s | %s | Job: %s | Trait: %s | Wage: $%.1f/h",
-            e.id, e.name, status, job, traitStr, wage))
+        local fatigueStr = ""
+        if e.isHired then
+            fatigueStr = string.format(" | Km: %.1f | Fatigue: %.0f%% | DayH: %.1fh",
+                e.kmDriven or 0, e.fatigueLevel or 0, e.dailyHoursWorked or 0)
+            if e.isOnBreak then fatigueStr = fatigueStr .. " [BREAK]" end
+        end
+        print(string.format("[%d] %s | %s | Job: %s | Trait: %s | Wage: $%.1f/h%s",
+            e.id, e.name, status, job, traitStr, wage, fatigueStr))
     end
     return "End of list"
 end
@@ -539,6 +729,62 @@ function EmployeeManager:consoleTrain(id, skillName)
         return string.format("Trained %s's %s to level %d", emp.name, skillName, emp.skills[skillName])
     end
     return "Training failed: " .. tostring(reason)
+end
+
+function EmployeeManager:consoleParkingAdd(name)
+    if not g_parkingManager then return "Parking manager not loaded" end
+    if not name or name == "" then return "Usage: emParkingAdd <name>" end
+
+    local player = g_localPlayer
+    if player == nil then return "Player not found" end
+
+    local x, y, z = getWorldTranslation(player.rootNode)
+    local dx, _, dz = localDirectionToWorld(player.rootNode, 0, 0, 1)
+    local angle = MathUtil.getYRotationFromDirection(dx, dz)
+
+    local id = g_parkingManager:addSpot(name, x, y, z, angle)
+    return string.format("Parking spot '%s' added (ID: %d) at %.1f, %.1f, %.1f", name, id, x, y, z)
+end
+
+function EmployeeManager:consoleParkingList()
+    if not g_parkingManager then return "Parking manager not loaded" end
+    print("--- Parking Spots ---")
+    local spots = g_parkingManager.spots or {}
+    if #spots == 0 then
+        print("No parking spots defined.")
+    else
+        for _, spot in ipairs(spots) do
+            local vehicleName = "empty"
+            if spot.vehicleId then
+                local v = self:getVehicleById(spot.vehicleId)
+                vehicleName = v and v:getName() or ("ID:" .. tostring(spot.vehicleId))
+            end
+            print(string.format("[%d] %s | Pos: %.0f,%.0f,%.0f | Vehicle: %s",
+                spot.id, spot.name, spot.x, spot.y, spot.z, vehicleName))
+        end
+    end
+    return "End of list"
+end
+
+function EmployeeManager:consoleParkingRemove(id)
+    if not g_parkingManager then return "Parking manager not loaded" end
+    id = tonumber(id)
+    if id == nil then return "Usage: emParkingRemove <id>" end
+    if g_parkingManager:removeSpot(id) then
+        return string.format("Parking spot %d removed", id)
+    end
+    return "Spot not found"
+end
+
+function EmployeeManager:consoleParkingAssign(spotId, vehicleId)
+    if not g_parkingManager then return "Parking manager not loaded" end
+    spotId = tonumber(spotId)
+    vehicleId = tonumber(vehicleId)
+    if spotId == nil or vehicleId == nil then return "Usage: emParkingAssign <spotId> <vehicleId>" end
+    if g_parkingManager:assignVehicle(spotId, vehicleId) then
+        return string.format("Vehicle %d assigned to spot %d", vehicleId, spotId)
+    end
+    return "Failed (invalid spot or vehicle ID)"
 end
 
 function EmployeeManager:consoleStartTask(id, taskName, fieldId)
@@ -615,6 +861,12 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
         setXMLInt(xmlFile, base .. "#lastTrainingDay", e.lastTrainingDay or 0)
         setXMLFloat(xmlFile, base .. "#totalWagesPaid", e.totalWagesPaid or 0)
         setXMLInt(xmlFile, base .. "#tasksCompleted", e.tasksCompleted or 0)
+        setXMLFloat(xmlFile, base .. "#pendingWages", e.pendingWages or 0)
+        setXMLBool(xmlFile, base .. "#isUnpaid", e.isUnpaid or false)
+
+        setXMLFloat(xmlFile, base .. "#dailyHoursWorked", e.dailyHoursWorked or 0)
+        setXMLFloat(xmlFile, base .. "#fatigueLevel", e.fatigueLevel or 0)
+        setXMLBool(xmlFile, base .. "#isOnBreak", e.isOnBreak or false)
 
         local queue = e.taskQueue or {}
         for qi, taskName in ipairs(queue) do
@@ -624,6 +876,12 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
     end
 
     setXMLInt(xmlFile, key .. ".poolState#lastRefreshDay", self.lastPoolRefreshDay or 0)
+    setXMLInt(xmlFile, key .. ".poolState#lastPaymentPeriod", self.lastPaymentPeriod or 0)
+
+    if g_parkingManager then
+        g_parkingManager:saveToXMLFile(xmlFile, key .. ".parking")
+    end
+
     return true
 end
 
@@ -682,6 +940,12 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         emp.lastTrainingDay = Utils.getNoNil(getXMLInt(xmlFile, base .. "#lastTrainingDay"), 0)
         emp.totalWagesPaid = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#totalWagesPaid"), 0)
         emp.tasksCompleted = Utils.getNoNil(getXMLInt(xmlFile, base .. "#tasksCompleted"), 0)
+        emp.pendingWages = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#pendingWages"), 0)
+        emp.isUnpaid = Utils.getNoNil(getXMLBool(xmlFile, base .. "#isUnpaid"), false)
+
+        emp.dailyHoursWorked = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#dailyHoursWorked"), 0)
+        emp.fatigueLevel = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#fatigueLevel"), 0)
+        emp.isOnBreak = Utils.getNoNil(getXMLBool(xmlFile, base .. "#isOnBreak"), false)
 
         emp.taskQueue = {}
         local qi = 0
@@ -698,6 +962,11 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
     end
 
     self.lastPoolRefreshDay = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#lastRefreshDay"), 0)
+    self.lastPaymentPeriod = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#lastPaymentPeriod"), 0)
+
+    if g_parkingManager then
+        g_parkingManager:loadFromXMLFile(xmlFile, key .. ".parking")
+    end
 
     CustomUtils:info("[EmployeeManager] Loaded %d employees from savegame", #self.employees)
 
