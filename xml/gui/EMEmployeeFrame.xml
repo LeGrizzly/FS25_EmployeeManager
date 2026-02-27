@@ -78,15 +78,37 @@
                         <Text profile="EM_InfoValue" id="statHoursWorked"/>
                     </BoxLayout>
                     <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_stat_km_driven"/>
+                        <Text profile="EM_InfoValue" id="statKmDriven"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
                         <Text profile="EM_InfoLabel" text="$l10n_em_stat_current_job"/>
                         <Text profile="EM_InfoValue" id="statCurrentJob"/>
                     </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_stat_fatigue"/>
+                        <Text profile="EM_InfoValue" id="statFatigue"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_shift_label"/>
+                        <Text profile="EM_InfoValue" id="statShift"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_stat_parking"/>
+                        <Text profile="EM_InfoValue" id="statParking"/>
+                    </BoxLayout>
+                    <BoxLayout profile="EM_RowBoxH">
+                        <Text profile="EM_InfoLabel" text="$l10n_em_stat_pending_wages"/>
+                        <Text profile="EM_InfoValue" id="statPendingWages"/>
+                    </BoxLayout>
                 </BoxLayout>
 
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -380px" width="360px"/>
-                <Text profile="EM_SectionTitle" position="10px -395px" text="$l10n_em_performance_title"/>
+                <Text profile="EM_InfoLabel" id="statFatigueStatus" position="10px -475px" visible="false"/>
 
-                <BoxLayout profile="EM_ColBoxV" position="10px -415px" width="360px">
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -490px" width="360px"/>
+                <Text profile="EM_SectionTitle" position="10px -505px" text="$l10n_em_performance_title"/>
+
+                <BoxLayout profile="EM_ColBoxV" position="10px -525px" width="360px">
                     <BoxLayout profile="EM_RowBoxH">
                         <Text profile="EM_InfoLabel" text="$l10n_em_stat_total_wages"/>
                         <Text profile="EM_InfoValue" id="statTotalWages"/>
@@ -105,14 +127,16 @@
                     </BoxLayout>
                 </BoxLayout>
 
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -510px" width="360px"/>
-                <Text profile="EM_SectionTitle" position="10px -525px" text="$l10n_em_workflow_builder"/>
-                <Text profile="EM_InfoLabel" id="txtWorkflowSummary" position="10px -545px" width="360px"/>
+                <Text profile="EM_InfoLabel" id="txtUnpaidWarning" position="10px -610px" visible="false"/>
 
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -575px" width="360px"/>
-                <Text profile="EM_FooterLabel" position="10px -590px" text="$l10n_em_employee_total_wage"/>
-                <Text profile="EM_FooterValue" position="10px -590px" id="txtWage" width="360px"/>
-                <Text profile="EM_InfoLabel" id="txtWageBreakdown" position="10px -610px" width="360px"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -620px" width="360px"/>
+                <Text profile="EM_SectionTitle" position="10px -635px" text="$l10n_em_workflow_builder"/>
+                <Text profile="EM_InfoLabel" id="txtWorkflowSummary" position="10px -655px" width="360px"/>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -685px" width="360px"/>
+                <Text profile="EM_FooterLabel" position="10px -700px" text="$l10n_em_employee_total_wage"/>
+                <Text profile="EM_FooterValue" position="10px -700px" id="txtWage" width="360px"/>
+                <Text profile="EM_InfoLabel" id="txtWageBreakdown" position="10px -720px" width="360px"/>
             </GuiElement>
         </GuiElement>
 
