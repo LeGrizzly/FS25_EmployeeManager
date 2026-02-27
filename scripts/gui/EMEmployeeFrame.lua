@@ -105,7 +105,20 @@ function EMEmployeeFrame:populateCellForItemInSection(list, section, index, cell
         local hourly = emp.getHourlyWage and emp:getHourlyWage() or 0
         local traitName = emp.getTraitName and emp:getTraitName() or ""
         if emp.isHired then
-            local statusText = emp.currentJob and (emp.currentJob.workType or "Working") or "Idle"
+            local statusText
+            if emp.isUnpaid then
+                statusText = g_i18n:getText("em_status_unpaid")
+            elseif emp.isOnBreak then
+                statusText = g_i18n:getText("em_status_on_break")
+            elseif emp.currentJob then
+                if emp.currentJob.type == "RETURN_TO_PARKING" then
+                    statusText = g_i18n:getText("em_status_returning")
+                else
+                    statusText = emp.currentJob.workType or "Working"
+                end
+            else
+                statusText = "Idle"
+            end
             subtitleEl:setText(string.format("%s | %s | %s/h", statusText, traitName, g_i18n:formatMoney(hourly, 0, true, false)))
         else
             subtitleEl:setText(string.format("%s | %s/h", traitName, g_i18n:formatMoney(hourly, 0, true, false)))
@@ -277,9 +290,16 @@ function EMEmployeeFrame:displayWorkStats(employee)
         self.statHoursWorked:setText(string.format("%.1f h", hours))
     end
 
+    if self.statKmDriven then
+        self.statKmDriven:setText(string.format("%.1f km", employee.kmDriven or 0))
+    end
+
     if self.statCurrentJob then
         if employee.currentJob then
             local jobType = employee.currentJob.workType or employee.currentJob.type or "Unknown"
+            if employee.currentJob.type == "RETURN_TO_PARKING" then
+                jobType = g_i18n:getText("em_status_returning")
+            end
             local fieldId = employee.currentJob.fieldId
             if fieldId then
                 self.statCurrentJob:setText(string.format("%s (Field %d)", jobType, fieldId))
@@ -288,6 +308,75 @@ function EMEmployeeFrame:displayWorkStats(employee)
             end
         else
             self.statCurrentJob:setText(g_i18n:getText("em_idle") or "Idle")
+        end
+    end
+
+    if self.statFatigue then
+        local fatigue = employee.fatigueLevel or 0
+        self.statFatigue:setText(string.format("%.0f%%", fatigue))
+        if fatigue >= 80 then
+            self.statFatigue:setTextColor(1, 0.2, 0.2, 1) -- red
+        elseif fatigue >= 60 then
+            self.statFatigue:setTextColor(1, 0.5, 0, 1) -- orange
+        elseif fatigue >= 40 then
+            self.statFatigue:setTextColor(1, 1, 0, 1) -- yellow
+        else
+            self.statFatigue:setTextColor(0.2, 1, 0.2, 1) -- green
+        end
+    end
+
+    if self.statShift then
+        self.statShift:setText(string.format("%d:00 - %d:00", employee.shiftStart or 6, employee.shiftEnd or 18))
+    end
+
+    if self.statFatigueStatus then
+        if employee.isOnBreak then
+            self.statFatigueStatus:setText(g_i18n:getText("em_status_on_break"))
+            self.statFatigueStatus:setTextColor(1, 1, 0, 1)
+            self.statFatigueStatus:setVisible(true)
+        elseif (employee.dailyHoursWorked or 0) >= 8 then
+            self.statFatigueStatus:setText(g_i18n:getText("em_status_exhausted"))
+            self.statFatigueStatus:setTextColor(1, 0.2, 0.2, 1)
+            self.statFatigueStatus:setVisible(true)
+        elseif (employee.fatigueLevel or 0) >= 50 then
+            self.statFatigueStatus:setText(g_i18n:getText("em_status_tired"))
+            self.statFatigueStatus:setTextColor(1, 0.7, 0, 1)
+            self.statFatigueStatus:setVisible(true)
+        else
+            self.statFatigueStatus:setVisible(false)
+        end
+    end
+
+    if self.statParking then
+        if g_parkingManager and employee.assignedVehicleId then
+            local spot = g_parkingManager:getSpotForVehicle(employee.assignedVehicleId)
+            if spot then
+                self.statParking:setText(spot.name)
+            else
+                self.statParking:setText(g_i18n:getText("em_no_parking"))
+            end
+        else
+            self.statParking:setText(g_i18n:getText("em_no_parking"))
+        end
+    end
+
+    if self.statPendingWages then
+        local pending = employee.pendingWages or 0
+        self.statPendingWages:setText(g_i18n:formatMoney(pending, 0, true, false))
+        if employee.isUnpaid then
+            self.statPendingWages:setTextColor(1, 0.2, 0.2, 1)
+        else
+            self.statPendingWages:setTextColor(1, 1, 1, 1)
+        end
+    end
+
+    if self.txtUnpaidWarning then
+        if employee.isUnpaid then
+            self.txtUnpaidWarning:setVisible(true)
+            self.txtUnpaidWarning:setText(g_i18n:getText("em_unpaid_warning"))
+            self.txtUnpaidWarning:setTextColor(1, 0.2, 0.2, 1)
+        else
+            self.txtUnpaidWarning:setVisible(false)
         end
     end
 end
