@@ -2,27 +2,8 @@ Employee = {}
 
 local Employee_mt = Class(Employee)
 
-Employee.TRAITS = {
-    CAREFUL       = { nameKey = "em_trait_careful",       wearMult = 0.85 },
-    RECKLESS      = { nameKey = "em_trait_reckless",      wearMult = 1.20, speedMult = 1.10 },
-    FUEL_SAVER    = { nameKey = "em_trait_fuel_saver",    fuelMult = 0.85 },
-    QUICK_LEARNER = { nameKey = "em_trait_quick_learner", xpMult = 1.50 },
-    HARD_WORKER   = { nameKey = "em_trait_hard_worker",   speedMult = 1.10 },
-    FRUGAL        = { nameKey = "em_trait_frugal",        wageMult = 0.90 },
-}
-
-Employee.XP_RATES = {
-    HARVEST   = { driving = 10, harvesting = 15, technical = 5 },
-    SOW       = { driving = 10, harvesting = 8,  technical = 5 },
-    PLOW      = { driving = 12, harvesting = 0,  technical = 8 },
-    CULTIVATE = { driving = 12, harvesting = 0,  technical = 8 },
-    FERTILIZE = { driving = 8,  harvesting = 0,  technical = 10 },
-    LIME      = { driving = 8,  harvesting = 0,  technical = 10 },
-    MOW       = { driving = 8,  harvesting = 10, technical = 5 },
-    TEDDER    = { driving = 8,  harvesting = 10, technical = 5 },
-    WINDROWER = { driving = 8,  harvesting = 10, technical = 5 },
-    DEFAULT   = { driving = 10, harvesting = 0,  technical = 5 },
-}
+Employee.TRAITS = TraitSystem.TRAITS
+Employee.XP_RATES = SkillSystem.XP_RATES
 
 function Employee.new(id, name, skills)
     local self = setmetatable({}, Employee_mt)
@@ -46,12 +27,13 @@ function Employee.new(id, name, skills)
     self.shiftStart = 6
     self.shiftEnd = 18
 
-    self.trait = nil
+    self.traits = {}
     self.lastTrainingDay = 0
     self.totalWagesPaid = 0
     self.tasksCompleted = 0
     self.pendingWages = 0
     self.isUnpaid = false
+    self.milestoneWageMult = 1.0
 
     self.lastVehicleX = nil
     self.lastVehicleZ = nil
@@ -66,22 +48,7 @@ function Employee.new(id, name, skills)
 end
 
 function Employee:addExperience(skillName, amount)
-    if self.skills[skillName] == nil or self.skills[skillName] >= 5 then
-        return false
-    end
-
-    local xpMult = self:getTraitMultiplier("xpMult")
-    self.skillXP[skillName] = (self.skillXP[skillName] or 0) + (amount * xpMult)
-    local xpNeeded = self.skills[skillName] * 100
-
-    if self.skillXP[skillName] >= xpNeeded then
-        self.skillXP[skillName] = self.skillXP[skillName] - xpNeeded
-        self.skills[skillName] = self.skills[skillName] + 1
-        CustomUtils:info("[Employee] %s leveled up %s to level %d!", self.name, skillName, self.skills[skillName])
-        g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
-        return true
-    end
-    return false
+    return SkillSystem.addExperience(self, skillName, amount)
 end
 
 function Employee:assignVehicle(vehicle)
@@ -103,56 +70,57 @@ function Employee:getDailyWage()
 end
 
 function Employee:getBaseHourlyWage()
-    return 5 + ((self.skills.driving or 0) * 1) + ((self.skills.harvesting or 0) * 1) + ((self.skills.technical or 0) * 0.5)
+    return 5 + ((self.skills.driving or 0) * 0.8) + ((self.skills.harvesting or 0) * 0.8) + ((self.skills.technical or 0) * 0.4)
 end
 
 function Employee:getHourlyWage()
     local base = self:getBaseHourlyWage()
-    local traitMult = self:getTraitMultiplier("wageMult")
+    local traitMult = SkillEffects.getWageTraitMultiplier(self)
     local expMult = math.min(1.25, 1.0 + (self.workTime / 500))
-    return base * traitMult * expMult
+    return base * traitMult * expMult * self.milestoneWageMult
 end
 
 function Employee:getTechnicalMultiplier()
-    local skill = math.max(1, math.min(5, self.skills.technical or 1))
-    local baseMult = 1.0 - ((skill - 1) * 0.125)
-    local traitWear = self:getTraitMultiplier("wearMult")
-    return baseMult * traitWear
+    return SkillEffects.getWearMultiplier(self)
 end
 
 function Employee:getTraitMultiplier(property)
-    if self.trait == nil then return 1.0 end
-    local traitDef = Employee.TRAITS[self.trait]
-    if traitDef == nil then return 1.0 end
-    return traitDef[property] or 1.0
+    return TraitSystem.getMultiplier(self.traits, property)
 end
 
 function Employee:getTraitName()
-    if self.trait == nil then return nil end
-    local traitDef = Employee.TRAITS[self.trait]
-    if traitDef == nil then return self.trait end
-    return g_i18n:getText(traitDef.nameKey)
+    return TraitSystem.getTraitNames(self.traits)
 end
 
 function Employee:getTrainingCost(skillName)
     local currentLevel = self.skills[skillName] or 1
-    return 500 * currentLevel
+    return math.floor(500 * SkillSystem.XP_EXPONENT ^ (currentLevel - 1))
+end
+
+function Employee:getTrainingCooldown()
+    local maxLevel = 0
+    for _, skillName in ipairs(SkillSystem.SKILL_NAMES) do
+        local level = self.skills[skillName] or 1
+        if level > maxLevel then maxLevel = level end
+    end
+    return maxLevel >= 6 and 3 or 2
 end
 
 function Employee:canTrain(skillName, currentDay)
     local level = self.skills[skillName]
-    if level == nil or level >= 5 then return false, "max_level" end
-    if (currentDay - self.lastTrainingDay) < 3 then return false, "cooldown" end
+    if level == nil or level >= SkillSystem.MAX_LEVEL then return false, "max_level" end
+    local cooldown = self:getTrainingCooldown()
+    if (currentDay - self.lastTrainingDay) < cooldown then return false, "cooldown" end
     return true, "ok"
 end
 
 function Employee:train(skillName, currentDay)
-    if self.skills[skillName] == nil or self.skills[skillName] >= 5 then return false end
+    if self.skills[skillName] == nil or self.skills[skillName] >= SkillSystem.MAX_LEVEL then return false end
     self.skills[skillName] = self.skills[skillName] + 1
     self.skillXP[skillName] = 0
     self.lastTrainingDay = currentDay
     CustomUtils:info("[Employee] %s trained %s to level %d", self.name, skillName, self.skills[skillName])
-    g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
+    g_messageCenter:publish(MessageType.EMPLOYEE_SKILL_LEVELUP, self, skillName, self.skills[skillName])
     return true
 end
 
@@ -222,12 +190,13 @@ function Employee:toTable()
         taskQueue = self.taskQueue,
         shiftStart = self.shiftStart,
         shiftEnd = self.shiftEnd,
-        trait = self.trait,
+        traits = self.traits,
         lastTrainingDay = self.lastTrainingDay,
         totalWagesPaid = self.totalWagesPaid,
         tasksCompleted = self.tasksCompleted,
         pendingWages = self.pendingWages,
         isUnpaid = self.isUnpaid,
+        milestoneWageMult = self.milestoneWageMult,
         dailyHoursWorked = self.dailyHoursWorked,
         fatigueLevel = self.fatigueLevel,
         isOnBreak = self.isOnBreak,
@@ -245,12 +214,19 @@ function Employee.fromTable(data)
     e.taskQueue = data.taskQueue or {}
     e.shiftStart = data.shiftStart or 6
     e.shiftEnd = data.shiftEnd or 18
-    e.trait = data.trait
+    if data.traits and type(data.traits) == "table" then
+        e.traits = data.traits
+    elseif data.trait and type(data.trait) == "string" then
+        e.traits = { data.trait }
+    else
+        e.traits = {}
+    end
     e.lastTrainingDay = data.lastTrainingDay or 0
     e.totalWagesPaid = data.totalWagesPaid or 0
     e.tasksCompleted = data.tasksCompleted or 0
     e.pendingWages = data.pendingWages or 0
     e.isUnpaid = data.isUnpaid or false
+    e.milestoneWageMult = data.milestoneWageMult or 1.0
     e.dailyHoursWorked = data.dailyHoursWorked or 0
     e.fatigueLevel = data.fatigueLevel or 0
     e.isOnBreak = data.isOnBreak or false
@@ -269,7 +245,11 @@ function Employee:writeStream(streamId, connection)
     end
     streamWriteInt32(streamId, self.shiftStart or 6)
     streamWriteInt32(streamId, self.shiftEnd or 18)
-    streamWriteString(streamId, self.trait or "")
+
+    streamWriteInt8(streamId, 2)
+    local traitsStr = TraitSystem.serialize(self.traits)
+    streamWriteString(streamId, traitsStr)
+
     streamWriteInt32(streamId, self.lastTrainingDay or 0)
     streamWriteFloat32(streamId, self.totalWagesPaid or 0)
     streamWriteInt32(streamId, self.tasksCompleted or 0)
@@ -285,6 +265,8 @@ function Employee:writeStream(streamId, connection)
     streamWriteFloat32(streamId, self.dailyHoursWorked or 0)
     streamWriteFloat32(streamId, self.fatigueLevel or 0)
     streamWriteBool(streamId, self.isOnBreak or false)
+
+    streamWriteFloat32(streamId, self.milestoneWageMult or 1.0)
 end
 
 function Employee:readStream(streamId, connection)
@@ -304,8 +286,16 @@ function Employee:readStream(streamId, connection)
     end
     self.shiftStart = streamReadInt32(streamId)
     self.shiftEnd = streamReadInt32(streamId)
-    local trait = streamReadString(streamId)
-    self.trait = (trait ~= "") and trait or nil
+
+    local streamVersion = streamReadInt8(streamId)
+    if streamVersion >= 2 then
+        local traitsStr = streamReadString(streamId)
+        self.traits = TraitSystem.deserialize(traitsStr)
+    else
+        local trait = streamReadString(streamId)
+        self.traits = (trait ~= "") and { trait } or {}
+    end
+
     self.lastTrainingDay = streamReadInt32(streamId)
     self.totalWagesPaid = streamReadFloat32(streamId)
     self.tasksCompleted = streamReadInt32(streamId)
@@ -321,6 +311,12 @@ function Employee:readStream(streamId, connection)
     self.dailyHoursWorked = streamReadFloat32(streamId)
     self.fatigueLevel = streamReadFloat32(streamId)
     self.isOnBreak = streamReadBool(streamId)
+
+    if streamVersion >= 2 then
+        self.milestoneWageMult = streamReadFloat32(streamId)
+    else
+        self.milestoneWageMult = 1.0
+    end
 end
 
 return Employee
