@@ -3,20 +3,21 @@ EMWorkflowFrame = {}
 local EMWorkflowFrame_mt = Class(EMWorkflowFrame, TabbedMenuFrameElement)
 
 EMWorkflowFrame.TASK_REQUIREMENTS = {
-    SOW        = { skill = "driving",    level = 1 },
     ROLL       = { skill = "driving",    level = 1 },
     MULCH      = { skill = "driving",    level = 1 },
-    CULTIVATE  = { skill = "driving",    level = 2 },
-    RIDGING    = { skill = "driving",    level = 2 },
-    PLOW       = { skill = "driving",    level = 3 },
+    SOW        = { skill = "driving",    level = 2 },
+    CULTIVATE  = { skill = "driving",    level = 3 },
+    RIDGING    = { skill = "driving",    level = 3 },
+    PLOW       = { skill = "driving",    level = 4 },
     LIME       = { skill = "technical",  level = 1 },
-    WEED       = { skill = "technical",  level = 1 },
-    STONES     = { skill = "technical",  level = 1 },
-    FERTILIZE  = { skill = "technical",  level = 2 },
+    WEED       = { skill = "technical",  level = 2 },
+    STONES     = { skill = "technical",  level = 2 },
+    FERTILIZE  = { skill = "technical",  level = 3 },
     TEDDER     = { skill = "harvesting", level = 1 },
     MOW        = { skill = "harvesting", level = 2 },
-    WINDROWER  = { skill = "harvesting", level = 2 },
-    HARVEST    = { skill = "harvesting", level = 3 },
+    WINDROWER  = { skill = "harvesting", level = 3 },
+    HARVEST    = { skill = "harvesting", level = 4 },
+    MULCH_LEAVES = { skill = "driving",  level = 1 },
 }
 
 function EMWorkflowFrame:new()
@@ -276,11 +277,12 @@ function EMWorkflowFrame:loadEmployeeData(employee)
 
     if self.txtSkillsSummary then
         local skills = employee.skills or {}
+        local maxLvl = SkillSystem.MAX_LEVEL
         self.txtSkillsSummary:setText(string.format(
-            "%s: %d/5  |  %s: %d/5  |  %s: %d/5",
-            g_i18n:getText("em_skill_driving"),    skills.driving or 1,
-            g_i18n:getText("em_skill_harvesting"), skills.harvesting or 1,
-            g_i18n:getText("em_skill_technical"),  skills.technical or 1
+            "%s: %d/%d  |  %s: %d/%d  |  %s: %d/%d",
+            g_i18n:getText("em_skill_driving"),    skills.driving or 1,    maxLvl,
+            g_i18n:getText("em_skill_harvesting"), skills.harvesting or 1, maxLvl,
+            g_i18n:getText("em_skill_technical"),  skills.technical or 1,  maxLvl
         ))
     end
 
