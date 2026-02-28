@@ -1,12 +1,19 @@
 <?xml version='1.0' encoding='utf-8'?>
 <l10n>
-	<translationContributors>FirenzeIT</translationContributors>
+	<translationContributors>
+		<name>LeGrizzly</name>
+		<name>FirenzeIT</name>
+	</translationContributors>
 	<texts>
 		<text name="UNKNOWN" text="Sconosciuto" />
 		<text name="input_SHOW_EMPLOYEE_MENU" text="Mostra il menu dipendenti" />
 		<text name="EM_employee_management" text="Gestione dipendenti" />
 
-		<!-- Traduzioni Employee Manager (da modDesc.xml) -->
+		<text name="em_list_new" text="Nuovi" />
+		<text name="em_list_active" text="Attivi" />
+		<text name="em_list_owned" text="Assunti" />
+		<text name="em_vehicle_not_assigned" text="Nessun veicolo assegnato" />
+		
 		<text name="em_skill_driving" text="Guida" />
 		<text name="em_skill_harvesting" text="Raccolta" />
 		<text name="em_skill_technical" text="Tecnica" />
@@ -14,9 +21,147 @@
 		<text name="em_current_job" text="Lavoro attuale" />
 		<text name="em_status_available" text="Disponibile" />
 		<text name="em_status_working" text="Al lavoro" />
+		<text name="em_assigned_field" text="Campo assegnato" />
 		<text name="em_action_hire" text="Assumi" />
 		<text name="em_action_fire" text="Licenzia" />
 		<text name="em_action_assign_vehicle" text="Assegna veicolo" />
 		<text name="em_action_assign_job" text="Assegna lavoro" />
-	</texts>
+
+		<text name="em_current_balance" text="Saldo attuale" />
+		<text name="em_no_employees" text="Nessun dipendente disponibile." />
+		<text name="em_employee_empty" text="Seleziona un dipendente per vedere i dettagli." />
+		<text name="em_employee_status_label" text="Stato" />
+		<text name="em_employee_skills_title" text="Abilità" />
+		<text name="em_employee_stats_title" text="Statistiche" />
+		<text name="em_stat_hours_worked" text="Ore lavorate" />
+		<text name="em_stat_current_job" text="Lavoro in corso" />
+		<text name="em_idle" text="Inattivo" />
+		<text name="em_none" text="Nessuno" />
+		<text name="em_unknown" text="Sconosciuto" />
+		<text name="em_list_fields" text="Campi" />
+		<text name="em_btn_start_workflow" text="Avvia flusso" />
+		<text name="em_employee_total_wage" text="Salario totale" />
+		<text name="em_available" text="Disponibili" />
+		<text name="em_hired" text="Assunti" />
+		<text name="em_header_employees" text="Dipendenti" />
+		<text name="em_btn_hire" text="Assumi" />
+		<text name="em_btn_fire" text="Licenzia" />
+		<text name="em_btn_assign" text="Assegna" />
+		<text name="em_dialog_hire_yes_no" text="Sei sicuro di voler assumere %s?" />
+		<text name="em_dialog_hire_yes_no_btn" text="Assumi dipendente" />
+		<text name="em_dialog_fire_yes_no" text="Sei sicuro di voler licenziare %s?" />
+		<text name="em_dialog_fire_yes_no_btn" text="Licenzia dipendente" />
+		<text name="em_employee_id_label" text="ID: %d" />
+		<text name="em_status_hired" text="Assunto" />
+
+		<text name="em_workflow_title" text="Editor flusso di lavoro" />
+		<text name="em_employee_selector" text="Seleziona un dipendente" />
+		<text name="em_field_selector" text="Campo target" />
+		<text name="em_crop_selector" text="Coltura target" />
+		<text name="em_btn_start" text="Avvia flusso di lavoro" />
+		<text name="em_btn_close" text="Chiudi" />
+		<text name="em_menu_instruction" text="Usa i controlli per gestire dipendenti e flussi di lavoro." />
+		<text name="em_no_selection" text="Nessuna selezione" />
+		<text name="input_EM_OPEN_WORKFLOW" text="Apri editor flusso di lavoro" />
+
+		<text name="em_workflow_builder" text="Flusso di lavoro" />
+		<text name="em_available_tasks" text="Compiti disponibili" />
+		<text name="em_workflow_queue" text="Coda compiti" />
+		<text name="em_error_no_field" text="Assegna prima un campo." />
+		<text name="em_error_no_vehicle" text="Assegna prima un veicolo." />
+		<text name="em_error_no_tasks" text="Aggiungi almeno un compito alla coda." />
+		<text name="em_error_no_hired" text="Nessun dipendente assunto. Assumi qualcuno prima!" />
+		<text name="em_workflow_started" text="%s ha avviato il flusso sul campo %d: %s" />
+		<text name="em_workflow_start_failed" text="Avvio flusso fallito per %s (controlla veicolo/attrezzatura)." />
+		<text name="em_workflow_saved" text="Flusso salvato per %s." />
+		<text name="em_shift_label" text="Orario" />
+		<text name="em_shift_to" text="a" />
+		<text name="em_btn_save_start" text="Salva e Avvia" />
+		<text name="em_btn_save" text="Salva" />
+		<text name="em_btn_workflow_editor" text="Editor Flussi" />
+
+		<text name="em_tab_employees" text="Dipendenti" />
+		<text name="em_tab_workflows" text="Flussi di lavoro" />
+		<text name="em_tab_fields" text="Campi" />
+		<text name="em_tab_vehicles" text="Veicoli" />
+		<text name="em_workflow_stub" text="Editor flussi — presto disponibile." />
+		<text name="em_fields_stub" text="Gestione campi — presto disponibile." />
+		<text name="em_vehicles_stub" text="Gestione veicoli — presto disponibile." />
+
+		<text name="em_field_list_title" text="Campi posseduti" />
+		<text name="em_field_area" text="Area" />
+		<text name="em_field_crop" text="Coltura attuale" />
+		<text name="em_field_growth" text="Stato di crescita" />
+		<text name="em_field_condition" text="Condizione" />
+		<text name="em_field_assigned_employee" text="Dipendente assegnato" />
+		<text name="em_field_empty" text="Non possiedi ancora nessun campo." />
+
+		<text name="em_vehicle_list_title" text="Veicoli posseduti" />
+		<text name="em_vehicle_status" text="Stato IA" />
+		<text name="em_vehicle_speed" text="Velocità" />
+		<text name="em_vehicle_implements" text="Attrezzi collegati" />
+		<text name="em_vehicle_assigned_employee" text="Dipendente assegnato" />
+		<text name="em_vehicle_empty" text="Non possiedi ancora nessun veicolo." />
+
+		<text name="em_label_trait" text="Tratto" />
+		<text name="em_trait_careful" text="Attento" />
+		<text name="em_trait_reckless" text="Spericolato" />
+		<text name="em_trait_fuel_saver" text="Risparmiatore carburante" />
+		<text name="em_trait_quick_learner" text="Apprende velocemente" />
+		<text name="em_trait_hard_worker" text="Stacanovista" />
+		<text name="em_trait_frugal" text="Frugale" />
+
+		<text name="em_wage_base" text="Base" />
+		<text name="em_wage_trait" text="Tratto" />
+		<text name="em_wage_exp" text="Esp" />
+		<text name="em_wage_market" text="Mercato" />
+
+		<text name="em_btn_train" text="Addestra" />
+		<text name="em_training_title" text="Centro di Formazione" />
+		<text name="em_train_driving" text="Addestra Guida" />
+		<text name="em_train_harvesting" text="Addestra Raccolta" />
+		<text name="em_train_technical" text="Addestra Tecnica" />
+		<text name="em_training_available" text="Disponibile" />
+		<text name="em_training_max" text="Livello MAX" />
+		<text name="em_training_cooldown" text="Ricarica: %d giorni" />
+		<text name="em_training_wait" text="Prossimo addestramento tra %d giorni" />
+		<text name="em_training_ready" text="Pronto per l'addestramento" />
+		<text name="em_training_success" text="%s ha migliorato %s al livello %d!" />
+		<text name="em_training_fail_max_level" text="Abilità già al livello massimo." />
+		<text name="em_training_fail_cooldown" text="Addestramento in ricarica. Attendi qualche giorno." />
+		<text name="em_training_fail_not_enough_money" text="Soldi insufficienti per l'addestramento." />
+
+		<text name="em_pool_refresh_in" text="Aggiornamento pool tra %d giorni" />
+
+		<text name="em_performance_title" text="Prestazioni" />
+		<text name="em_stat_total_wages" text="Totale salari pagati" />
+		<text name="em_stat_tasks_completed" text="Compiti completati" />
+		<text name="em_stat_avg_wage" text="Salario medio" />
+		<text name="em_stat_efficiency" text="Efficienza (compiti/h)" />
+
+		<text name="em_stat_pending_wages" text="Salario in sospeso" />
+		<text name="em_status_unpaid" text="NON PAGATO" />
+		<text name="em_payroll_failed" text="Soldi insufficienti per pagare i dipendenti! Smetteranno di lavorare." />
+		<text name="em_payroll_success" text="Paga mensile: %s dedotti" />
+		<text name="em_unpaid_warning" text="Non pagato - rifiuta di lavorare" />
+		<text name="em_payroll_total" text="Paga mensile totale" />
+
+		<text name="em_stat_km_driven" text="Distanza percorsa" />
+		<text name="em_stat_fatigue" text="Fatica" />
+		<text name="em_status_on_break" text="In pausa" />
+		<text name="em_status_exhausted" text="Esausto" />
+		<text name="em_status_tired" text="Stanco" />
+		<text name="em_stat_parking" text="Posto parcheggio" />
+		<text name="em_no_parking" text="Non assegnato" />
+		<text name="em_status_returning" text="Ritorno al parcheggio" />
+
+		<text name="em_milestone_apprentice" text="Apprendista" />
+		<text name="em_milestone_companion" text="Compagnon" />
+		<text name="em_milestone_expert" text="Esperto" />
+		<text name="em_milestone_master" text="Maestro" />
+		<text name="em_milestone_reached" text="%s ha raggiunto %s livello %d: %s!" />
+
+		<text name="em_label_traits" text="Tratti" />
+		<text name="em_wage_milestone" text="Traguardo" />
+    </texts>
 </l10n>
