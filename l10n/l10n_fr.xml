@@ -151,5 +151,14 @@
         <text name="em_stat_parking" text="Place de parking" />
         <text name="em_no_parking" text="Non assigne" />
         <text name="em_status_returning" text="Retour au parking" />
+
+        <text name="em_milestone_apprentice" text="Apprenti" />
+        <text name="em_milestone_companion" text="Compagnon" />
+        <text name="em_milestone_expert" text="Expert" />
+        <text name="em_milestone_master" text="Maitre" />
+        <text name="em_milestone_reached" text="%s a atteint %s niveau %d : %s !" />
+
+        <text name="em_label_traits" text="Traits" />
+        <text name="em_wage_milestone" text="Milestone" />
     </texts>
 </l10n>
