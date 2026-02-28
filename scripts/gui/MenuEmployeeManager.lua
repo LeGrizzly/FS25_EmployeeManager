@@ -253,6 +253,7 @@ end
 function MenuEmployeeManager:displaySkills(employee)
     local skills = employee.skills or { driving = 1, harvesting = 1, technical = 1 }
     local skillXP = employee.skillXP or { driving = 0, harvesting = 0, technical = 0 }
+    local maxLevel = SkillSystem.MAX_LEVEL
 
     local skillDefs = {
         { key = "driving",    starsId = "skillDrivingStars",    xpId = "skillDrivingXP" },
@@ -261,12 +262,13 @@ function MenuEmployeeManager:displaySkills(employee)
     }
 
     for _, def in ipairs(skillDefs) do
-        local level = math.min(5, math.max(1, skills[def.key] or 1))
+        local level = math.min(maxLevel, math.max(1, skills[def.key] or 1))
         local xp = skillXP[def.key] or 0
-        local xpNeeded = level < 5 and (level * 100) or 0
+        local xpNeeded = SkillSystem.getXPNeeded(level)
 
-        local stars = string.rep("*", level) .. string.rep("-", 5 - level)
-        local starsText = string.format("[%s] %d/5", stars, level)
+        local filled = math.min(level, maxLevel)
+        local bar = string.rep("#", filled) .. string.rep("-", maxLevel - filled)
+        local starsText = string.format("[%s] %d/%d", bar, level, maxLevel)
 
         local starsElement = self[def.starsId]
         if starsElement then
@@ -275,7 +277,7 @@ function MenuEmployeeManager:displaySkills(employee)
 
         local xpElement = self[def.xpId]
         if xpElement then
-            if level >= 5 then
+            if level >= maxLevel then
                 xpElement:setText("MAX")
             else
                 xpElement:setText(string.format("XP: %d/%d", math.floor(xp), xpNeeded))

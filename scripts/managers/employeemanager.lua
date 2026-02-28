@@ -90,7 +90,7 @@ function EmployeeManager:update(dt)
                 employee.pendingWages = (employee.pendingWages or 0) + wage
 
                 local workType = employee.currentJob.workType or "DEFAULT"
-                local xpRates = Employee.XP_RATES[workType] or Employee.XP_RATES.DEFAULT
+                local xpRates = SkillSystem.getXPRates(workType)
                 for skill, rate in pairs(xpRates) do
                     if rate > 0 then
                         employee:addExperience(skill, hoursWorked * rate * fatigueMult)
@@ -528,7 +528,7 @@ function EmployeeManager:loadEmployeeTemplates(modDirectory)
         if traitsStr then
             for trait in traitsStr:gmatch("[^,]+") do
                 trait = trait:match("^%s*(.-)%s*$")
-                if Employee.TRAITS[trait] then
+                if TraitSystem.TRAITS[trait] then
                     table.insert(possibleTraits, trait)
                 end
             end
@@ -599,12 +599,13 @@ function EmployeeManager:generateEmployeeFromTemplate()
     local employee = Employee.new(id, name, skills)
 
     if template.possibleTraits and #template.possibleTraits > 0 then
-        employee.trait = template.possibleTraits[math.random(#template.possibleTraits)]
+        employee.traits = TraitSystem.selectTraits(template.possibleTraits)
     end
 
     table.insert(self.employees, employee)
-    CustomUtils:info("[EmployeeManager] Generated employee from template: %s (ID: %d) [D:%d H:%d T:%d] Trait:%s",
-        name, id, skills.driving, skills.harvesting, skills.technical, employee.trait or "none")
+    local traitLog = (#employee.traits > 0) and table.concat(employee.traits, ",") or "none"
+    CustomUtils:info("[EmployeeManager] Generated employee from template: %s (ID: %d) [D:%d H:%d T:%d] Traits:%s",
+        name, id, skills.driving, skills.harvesting, skills.technical, traitLog)
 
     g_messageCenter:publish(MessageType.EMPLOYEE_ADDED)
     return employee
@@ -704,7 +705,7 @@ function EmployeeManager:consoleListEmployees()
     for _, e in ipairs(self.employees) do
         local status = e.isHired and "HIRED" or "AVAILABLE"
         local job = e.currentJob and e.currentJob.type or "IDLE"
-        local traitStr = e.trait or "none"
+        local traitStr = (#(e.traits or {}) > 0) and table.concat(e.traits, ",") or "none"
         local wage = e:getHourlyWage()
         local fatigueStr = ""
         if e.isHired then
@@ -855,8 +856,9 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
         setXMLInt(xmlFile, base .. "#shiftStart", e.shiftStart or 6)
         setXMLInt(xmlFile, base .. "#shiftEnd", e.shiftEnd or 18)
 
-        if e.trait then
-            setXMLString(xmlFile, base .. "#trait", e.trait)
+        local traitsStr = TraitSystem.serialize(e.traits)
+        if traitsStr ~= "" then
+            setXMLString(xmlFile, base .. "#traits", traitsStr)
         end
         setXMLInt(xmlFile, base .. "#lastTrainingDay", e.lastTrainingDay or 0)
         setXMLFloat(xmlFile, base .. "#totalWagesPaid", e.totalWagesPaid or 0)
@@ -867,6 +869,7 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
         setXMLFloat(xmlFile, base .. "#dailyHoursWorked", e.dailyHoursWorked or 0)
         setXMLFloat(xmlFile, base .. "#fatigueLevel", e.fatigueLevel or 0)
         setXMLBool(xmlFile, base .. "#isOnBreak", e.isOnBreak or false)
+        setXMLFloat(xmlFile, base .. "#milestoneWageMult", e.milestoneWageMult or 1.0)
 
         local queue = e.taskQueue or {}
         for qi, taskName in ipairs(queue) do
@@ -936,7 +939,15 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         emp.shiftStart = Utils.getNoNil(getXMLInt(xmlFile, base .. "#shiftStart"), 6)
         emp.shiftEnd = Utils.getNoNil(getXMLInt(xmlFile, base .. "#shiftEnd"), 18)
 
-        emp.trait = getXMLString(xmlFile, base .. "#trait")
+        local traitsStr = getXMLString(xmlFile, base .. "#traits")
+        local singleTrait = getXMLString(xmlFile, base .. "#trait")
+        if traitsStr then
+            emp.traits = TraitSystem.deserialize(traitsStr)
+        elseif singleTrait then
+            emp.traits = { singleTrait }
+        else
+            emp.traits = {}
+        end
         emp.lastTrainingDay = Utils.getNoNil(getXMLInt(xmlFile, base .. "#lastTrainingDay"), 0)
         emp.totalWagesPaid = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#totalWagesPaid"), 0)
         emp.tasksCompleted = Utils.getNoNil(getXMLInt(xmlFile, base .. "#tasksCompleted"), 0)
@@ -946,6 +957,7 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         emp.dailyHoursWorked = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#dailyHoursWorked"), 0)
         emp.fatigueLevel = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#fatigueLevel"), 0)
         emp.isOnBreak = Utils.getNoNil(getXMLBool(xmlFile, base .. "#isOnBreak"), false)
+        emp.milestoneWageMult = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#milestoneWageMult"), 1.0)
 
         emp.taskQueue = {}
         local qi = 0

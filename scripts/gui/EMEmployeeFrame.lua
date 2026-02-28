@@ -193,9 +193,9 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
     end
 
     if self.txtTrait then
-        local traitName = emp.getTraitName and emp:getTraitName()
-        if traitName then
-            self.txtTrait:setText(traitName)
+        local traitNames = emp.getTraitName and emp:getTraitName()
+        if traitNames then
+            self.txtTrait:setText(traitNames)
         else
             self.txtTrait:setText(g_i18n:getText("em_none"))
         end
@@ -240,13 +240,18 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
         local traitMult = emp.getTraitMultiplier and emp:getTraitMultiplier("wageMult") or 1.0
         local expMult = math.min(1.25, 1.0 + ((emp.workTime or 0) / 500))
         local marketMult = g_employeeManager and g_employeeManager:getMarketMultiplier() or 1.0
-        self.txtWageBreakdown:setText(string.format(
+        local milestoneMult = emp.milestoneWageMult or 1.0
+        local parts = string.format(
             "%s: $%d | %s: x%.2f | %s: x%.2f | %s: x%.2f",
             g_i18n:getText("em_wage_base"), base,
             g_i18n:getText("em_wage_trait"), traitMult,
             g_i18n:getText("em_wage_exp"), expMult,
             g_i18n:getText("em_wage_market"), marketMult
-        ))
+        )
+        if milestoneMult > 1.0 then
+            parts = parts .. string.format(" | %s: x%.2f", g_i18n:getText("em_wage_milestone"), milestoneMult)
+        end
+        self.txtWageBreakdown:setText(parts)
     end
 
     self:displayPerformanceStats(emp)
@@ -255,6 +260,7 @@ end
 function EMEmployeeFrame:displaySkills(employee)
     local skills  = employee.skills   or { driving = 1, harvesting = 1, technical = 1 }
     local skillXP = employee.skillXP  or { driving = 0, harvesting = 0, technical = 0 }
+    local maxLevel = SkillSystem.MAX_LEVEL
 
     local skillDefs = {
         { key = "driving",    starsId = "skillDrivingStars",    xpId = "skillDrivingXP" },
@@ -263,19 +269,27 @@ function EMEmployeeFrame:displaySkills(employee)
     }
 
     for _, def in ipairs(skillDefs) do
-        local level = math.min(5, math.max(1, skills[def.key] or 1))
+        local level = math.min(maxLevel, math.max(1, skills[def.key] or 1))
         local xp    = skillXP[def.key] or 0
-        local xpNeeded = level < 5 and (level * 100) or 0
+        local xpNeeded = SkillSystem.getXPNeeded(level)
 
-        local stars = string.rep("*", level) .. string.rep("-", 5 - level)
-        local starsText = string.format("[%s] %d/5", stars, level)
+        -- Compact bar: [####------] 4/10
+        local filled = math.min(level, maxLevel)
+        local bar = string.rep("#", filled) .. string.rep("-", maxLevel - filled)
+        local starsText = string.format("[%s] %d/%d", bar, level, maxLevel)
+
+        -- Add milestone badge
+        local milestoneTitle = MilestoneSystem.getMilestoneTitle(level)
+        if milestoneTitle then
+            starsText = starsText .. " " .. g_i18n:getText(milestoneTitle)
+        end
 
         local starsElement = self[def.starsId]
         if starsElement then starsElement:setText(starsText) end
 
         local xpElement = self[def.xpId]
         if xpElement then
-            if level >= 5 then
+            if level >= maxLevel then
                 xpElement:setText("MAX")
             else
                 xpElement:setText(string.format("XP: %d/%d", math.floor(xp), xpNeeded))

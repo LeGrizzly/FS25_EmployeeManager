@@ -37,6 +37,8 @@ function EMTrainingDialog:updateDisplay()
         currentDay = g_currentMission.environment.currentDay or 0
     end
 
+    local maxLevel = SkillSystem.MAX_LEVEL
+
     local skillDefs = {
         { key = "driving",    levelId = "txtDrivingLevel",    costId = "txtDrivingCost",    statusId = "txtDrivingStatus" },
         { key = "harvesting", levelId = "txtHarvestingLevel", costId = "txtHarvestingCost", statusId = "txtHarvestingStatus" },
@@ -45,14 +47,15 @@ function EMTrainingDialog:updateDisplay()
 
     for _, def in ipairs(skillDefs) do
         local level = emp.skills[def.key] or 1
-        local stars = string.rep("*", level) .. string.rep("-", 5 - level)
+        local filled = math.min(level, maxLevel)
+        local bar = string.rep("#", filled) .. string.rep("-", maxLevel - filled)
 
         if self[def.levelId] then
-            self[def.levelId]:setText(string.format("[%s] %d/5", stars, level))
+            self[def.levelId]:setText(string.format("[%s] %d/%d", bar, level, maxLevel))
         end
 
         if self[def.costId] then
-            if level >= 5 then
+            if level >= maxLevel then
                 self[def.costId]:setText("--")
             else
                 local cost = emp:getTrainingCost(def.key)
@@ -67,16 +70,18 @@ function EMTrainingDialog:updateDisplay()
             elseif reason == "max_level" then
                 self[def.statusId]:setText(g_i18n:getText("em_training_max"))
             elseif reason == "cooldown" then
-                local daysLeft = 3 - (currentDay - emp.lastTrainingDay)
+                local cooldown = emp:getTrainingCooldown()
+                local daysLeft = cooldown - (currentDay - emp.lastTrainingDay)
                 self[def.statusId]:setText(string.format(g_i18n:getText("em_training_cooldown"), daysLeft))
             end
         end
     end
 
     if self.txtCooldownInfo then
+        local cooldown = emp:getTrainingCooldown()
         local daysSince = currentDay - (emp.lastTrainingDay or 0)
-        if emp.lastTrainingDay > 0 and daysSince < 3 then
-            self.txtCooldownInfo:setText(string.format(g_i18n:getText("em_training_wait"), 3 - daysSince))
+        if emp.lastTrainingDay > 0 and daysSince < cooldown then
+            self.txtCooldownInfo:setText(string.format(g_i18n:getText("em_training_wait"), cooldown - daysSince))
         else
             self.txtCooldownInfo:setText(g_i18n:getText("em_training_ready"))
         end
