@@ -1,14 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
 <modDesc descVersion="106">
   <author>LeGrizzly</author>
-  <version>0.0.5</version>
+  <version>0.0.6-build-1</version>
   <title>
     <en><![CDATA[Advanced Employee Manager]]></en>
     <fr><![CDATA[Gestion Avancée Des Employés]]></fr>
+    <it><![CDATA[Gestore Dipendenti Avanzato]]></it>
   </title>
   <description>
     <en><![CDATA[Bring a new level of depth to your farm's workforce. Hire and manage employees with unique skills to optimize your operations.]]></en>
     <fr><![CDATA[Apportez un nouveau niveau de profondeur à votre main-d'œuvre agricole. Embauchez et gérez des employés dotés de compétences uniques pour optimiser vos opérations.]]></fr>
+    <it><![CDATA[Porta un nuovo livello di profondità alla forza lavoro della tua fattoria. Assumi e gestisci dipendenti con abilità uniche per ottimizzare le tue operazioni.]]></it>
     <de><![CDATA[Bringen Sie eine neue Ebene der Tiefe in Ihre landwirtschaftliche Belegschaft. Stellen Sie Mitarbeiter mit einzigartigen Fähigkeiten ein und verwalten Sie sie, um Ihre Betriebe zu optimieren.]]></de>
   </description>
   <iconFilename>images/icon_employee.dds</iconFilename>
