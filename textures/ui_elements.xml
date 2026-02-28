@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<OverlayConfig>
+    <Overlay name="menuIcon" filename="icon_temporary.dds" x="0" y="0" width="1" height="1" />
+</OverlayConfig>

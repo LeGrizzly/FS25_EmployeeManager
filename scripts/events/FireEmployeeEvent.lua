@@ -3,6 +3,7 @@ FireEmployeeEvent = {}
 local FireEmployeeEvent_mt = Class(FireEmployeeEvent, Event)
 
 function FireEmployeeEvent.new(employeeId)
+    Logging.info("[FireEmployeeEvent] new(employeeId: %s)", tostring(employeeId))
     local self = Event.new(FireEmployeeEvent_mt)
     self.employeeId = employeeId
     return self

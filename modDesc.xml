@@ -1,23 +1,20 @@
-<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<modDesc descVersion="97">
-    <author>LeGrizzly</author>
-    <version>0.0.2-preview1</version>
-    <title>
-        <en><![CDATA[Advanced Employee Manager]]></en>
-        <fr><![CDATA[Gestion Avancée des Employés]]></fr>
-    </title>
-    <description>
-        <en><![CDATA[Bring a new level of depth to your farm's workforce. Hire and manage employees with unique skills to optimize your operations.]]></en>
-        <fr><![CDATA[Apportez un nouveau niveau de profondeur à votre main-d'œuvre agricole. Embauchez et gérez des employés dotés de compétences uniques pour optimiser vos opérations.]]></fr>
-    </description>
-
-    <iconFilename>icon_temporary.dds</iconFilename>
-
-    <multiplayer supported="false" />
-
-    <extraSourceFiles>
-        <sourceFile filename="scripts/main.lua" />
-    </extraSourceFiles>
-
-    <l10n filenamePrefix="l10n/l10n" />
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<modDesc descVersion="106">
+  <author>LeGrizzly</author>
+  <version>0.0.5</version>
+  <title>
+    <en><![CDATA[Advanced Employee Manager]]></en>
+    <fr><![CDATA[Gestion Avancée Des Employés]]></fr>
+  </title>
+  <description>
+    <en><![CDATA[Bring a new level of depth to your farm's workforce. Hire and manage employees with unique skills to optimize your operations.]]></en>
+    <fr><![CDATA[Apportez un nouveau niveau de profondeur à votre main-d'œuvre agricole. Embauchez et gérez des employés dotés de compétences uniques pour optimiser vos opérations.]]></fr>
+    <de><![CDATA[Bringen Sie eine neue Ebene der Tiefe in Ihre landwirtschaftliche Belegschaft. Stellen Sie Mitarbeiter mit einzigartigen Fähigkeiten ein und verwalten Sie sie, um Ihre Betriebe zu optimieren.]]></de>
+  </description>
+  <iconFilename>images/icon_employee.dds</iconFilename>
+  <multiplayer supported="true" />
+  <extraSourceFiles>
+    <sourceFile filename="scripts/main.lua" />
+  </extraSourceFiles>
+  <l10n filenamePrefix="l10n/l10n" />
 </modDesc>
