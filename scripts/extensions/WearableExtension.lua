@@ -12,11 +12,11 @@ function WearableExtension.overwrittenUpdateDamageAmount(vehicle, superFunc, dt)
     if changeAmount > 0 and g_employeeManager ~= nil then
         local employee = g_employeeManager:getEmployeeByVehicle(vehicle)
         if employee and employee.isHired and employee.currentJob ~= nil then
-            local multiplier = employee:getTechnicalMultiplier()
+            local multiplier = SkillEffects.getWearMultiplier(employee)
             changeAmount = changeAmount * multiplier
         end
     end
-    
+
     return changeAmount
 end
 
@@ -28,11 +28,11 @@ end
 ---@return number The change in wear amount
 function WearableExtension.overwrittenUpdateWearAmount(vehicle, superFunc, nodeData, dt)
     local changeAmount = superFunc(vehicle, nodeData, dt)
-    
+
     if changeAmount > 0 and g_employeeManager ~= nil then
         local employee = g_employeeManager:getEmployeeByVehicle(vehicle)
         if employee and employee.isHired and employee.currentJob ~= nil then
-            local multiplier = employee:getTechnicalMultiplier()
+            local multiplier = SkillEffects.getWearMultiplier(employee)
             changeAmount = changeAmount * multiplier
         end
     end
