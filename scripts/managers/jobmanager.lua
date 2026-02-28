@@ -58,19 +58,20 @@ function JobManager:startFieldWork(employee, fieldId, workType)
 
     if workType == "HARVEST" then
         if not vehicle.spec_combine then
-            local msg = string.format("Employee %s cannot harvest with a %s. A self-propelled harvester is required.", 
+            local msg = string.format("Employee %s cannot harvest with a %s. A self-propelled harvester is required.",
                 employee.name, vehicle:getName())
             CustomUtils:error("[JobManager] " .. msg)
             g_currentMission:showBlinkingWarning(msg, 5000)
             return false
         end
-        if (employee.skills.harvesting or 0) < 3 then
-            CustomUtils:error("[JobManager] Employee %s does not have enough harvesting skill (Current: %d, Required: 3)", employee.name, employee.skills.harvesting)
-            return false
-        end
-    else
-        if (employee.skills.driving or 0) < 2 then
-            CustomUtils:error("[JobManager] Employee %s does not have enough driving skill for %s (Current: %d, Required: 2)", employee.name, workType, employee.skills.driving)
+    end
+
+    local req = EMWorkflowFrame.TASK_REQUIREMENTS[workType]
+    if req then
+        local level = employee.skills[req.skill] or 1
+        if level < req.level then
+            CustomUtils:error("[JobManager] Employee %s does not have enough %s skill for %s (Current: %d, Required: %d)",
+                employee.name, req.skill, workType, level, req.level)
             return false
         end
     end
