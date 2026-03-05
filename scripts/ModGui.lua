@@ -214,15 +214,15 @@ function ModGui:consoleReloadGui()
 end
 
 function ModGui:consoleReloadFrames()
-    if g_server ~= nil and not g_currentMission.missionDynamicInfo.isMultiplayer then
-        g_gui:showGui("InGameMenu")
-
+    if g_server ~= nil and not g_currentMission.missionDynamicInfo.isMultiplayer then        
         if self:deleteMenuFrame(MenuEmployeeManager) then
             g_gui.currentlyReloading = true
             self:loadMenuFrame(MenuEmployeeManager)
             g_gui.currentlyReloading = false
             g_inGameMenu:rebuildTabList()
             g_inGameMenu.pagingElement:updatePageMapping()
+
+            g_gui:showGui("InGameMenu")
             return 'Reloaded MenuEmployeeManager'
         end
     end
