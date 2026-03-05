@@ -1,88 +1,136 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <GUI name="EMWorkflow">
     <GuiElement profile="uiInGameMenuFrame">
-        <GuiElement profile="fs25_menuHeaderPanel">
+        <GuiElement profile="fs25_menuHeaderPanel" position="-3px 82px" width="800px">
             <Bitmap profile="fs25_menuHeaderIconBg" />
             <Text profile="fs25_menuHeaderTitle" text="$l10n_em_tab_workflows" />
         </GuiElement>
 
-        <GuiElement profile="emptyPanel" id="mainBox" position="0px -80px">
+        <!-- Content area: 2-column layout with avatar list + wide panel -->
+        <GuiElement profile="fs25_subCategorySelectorTabbedContainer" position="-200px 0px" debugEnabled="false">
+            <ThreePartBitmap profile="fs25_primaryMenuContainerBg" width="500px" height="1200px" position="0px 20px">
+                <Bitmap profile="fs25_menuContainerArrow" />
 
-            <GuiElement profile="emMenuLeftColumn" size="320px 780px">
-                <Text profile="EM_SectionTitle" position="20px -10px" size="280px 32px" text="$l10n_em_list_owned" />
+                <!-- Column 1: Hired employees list with avatars (~400px) -->
+                <GuiElement profile="fs25_subCategoryContainer" width="400px">
+                    <Text profile="EM_SectionTitle" position="50px -80px" size="380px 32px" text="$l10n_em_list_owned"/>
 
-                <SmoothList id="employeeList" profile="emMenuList" position="10px -35px" width="300px" height="700px"
-                    selectedWithoutFocus="true">
-                    <ListItem profile="EM_ListItem">
-                        <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>
-                        <Text profile="emMenuListItemTitle" name="title"/>
-                        <Text profile="emMenuListItemSubtitle" name="subtitle"/>
-                    </ListItem>
-                </SmoothList>
+                    <GuiElement profile="fs25_subCategoryListContainer" id="employeesContainer" position="30px -150px" width="400px" height="1000px">
+                        <SmoothList id="employeeList" profile="EM_List" startClipperElementName="startClipper" endClipperElementName="endClipper">
+                            <ListItem profile="EM_ListItem" width="400px">
+                                <Bitmap profile="EM_ListItemAvatar" name="avatar"/>
+                                <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>
+                                <Text profile="EM_ListItemTitle" name="title" width="100"/>
+                                <Text profile="EM_ListItemSubtitle" name="subtitle" width="50"/>
+                            </ListItem>
+                        </SmoothList>
 
-                <ThreePartBitmap profile="emMenuListSliderBox" position="-10px -35px" height="700px">
-                    <Slider profile="fs25_listSlider" dataElementId="employeeList" />
+                        <ThreePartBitmap profile="fs25_subCategoryListSliderBox">
+                            <Slider profile="fs25_listSlider" dataElementId="employeeList"/>
+                        </ThreePartBitmap>
+                    </GuiElement>
+                </GuiElement>
+            </ThreePartBitmap>
+
+            <!-- Column 2: Wide config panel (~900px) -->
+            <GuiElement id="mainBox" position="500px 100px" width="900px" height="600px" visible="false" debugEnabled="false">
+
+                <!-- Row 1: Split Config (Left) and Skills (Right) -->
+
+                <!-- COL 1: Selectors (Width ~400px) -->
+                <Text profile="EM_SectionTitle" position="0px 0px" text="$l10n_em_employee_info_title" width="400px"/>
+
+                <Text profile="EM_RowLabel" position="0px -40px" text="$l10n_em_field_selector" width="120px"/>
+                <MultiTextOption profile="EM_InfoSelector" id="fieldSelector" onClick="onFieldChanged" size="300px 32px" position="130px -30px"/>
+
+                <Text profile="EM_RowLabel" position="0px -90px" text="$l10n_em_assigned_vehicle" width="120px"/>
+                <MultiTextOption profile="EM_InfoSelector" id="vehicleSelector" onClick="onVehicleChanged" size="300px 32px" position="130px -80px"/>
+                
+                <Text profile="EM_RowLabel" position="0px -140px" text="$l10n_em_shift_label" width="120px"/>
+
+                <MultiTextOption profile="EM_InfoSelector" id="shiftStartSelector" onClick="onShiftStartChanged" size="200px 32px" position="130px -130px"/>
+
+                <Text profile="EM_InfoSelector" text="$l10n_em_shift_to" width="30px" position="340px -130px"/>
+
+                <MultiTextOption profile="EM_InfoSelector" id="shiftEndSelector" onClick="onShiftEndChanged" size="200px 32px" position="380px -130px"/>
+
+                <!-- COL 2: Skills (Starting x=450px) -->
+                <Text profile="EM_SectionTitle" position="450px 0px" text="$l10n_em_employee_skills_title" width="400px"/>
+
+                <!-- Driving -->
+                <Text profile="EM_SkillLabel" position="450px -30px" text="$l10n_em_skill_driving" width="120px"/>
+                <ThreePartBitmap profile="EM_SkillBarBackground" position="580px -35px" width="220px">
+                    <ThreePartBitmap profile="EM_SkillBar" id="barSkillDriving"/>
                 </ThreePartBitmap>
-            </GuiElement>
+                <Text profile="EM_SkillLevel" id="txtSkillDrivingLevel" position="810px -30px" width="80px"/>
 
-            <GuiElement profile="emMenuRightColumn" size="420px 780px" position="340px 0px">
+                <!-- Harvesting -->
+                <Text profile="EM_SkillLabel" position="450px -65px" text="$l10n_em_skill_harvesting" width="120px"/>
+                <ThreePartBitmap profile="EM_SkillBarBackground" position="580px -70px" width="220px">
+                    <ThreePartBitmap profile="EM_SkillBar" id="barSkillHarvesting"/>
+                </ThreePartBitmap>
+                <Text profile="EM_SkillLevel" id="txtSkillHarvestingLevel" position="810px -65px" width="80px"/>
 
-                <BoxLayout profile="EM_RowBoxH" position="10px -10px" width="360px">
-                    <Text profile="EM_InfoLabel" text="$l10n_em_field_selector" width="200px"/>
-                    <MultiTextOption profile="EM_InfoSelector" id="fieldSelector" onClick="onFieldChanged" size="140px 32px"/>
-                </BoxLayout>
+                <!-- Technical -->
+                <Text profile="EM_SkillLabel" position="450px -100px" text="$l10n_em_skill_technical" width="120px"/>
+                <ThreePartBitmap profile="EM_SkillBarBackground" position="580px -105px" width="220px">
+                    <ThreePartBitmap profile="EM_SkillBar" id="barSkillTechnical"/>
+                </ThreePartBitmap>
+                <Text profile="EM_SkillLevel" id="txtSkillTechnicalLevel" position="810px -100px" width="80px"/>
 
-                <BoxLayout profile="EM_RowBoxH" position="10px -50px" width="360px">
-                    <Text profile="EM_InfoLabel" text="$l10n_em_assigned_vehicle" width="200px"/>
-                    <MultiTextOption profile="EM_InfoSelector" id="vehicleSelector" onClick="onVehicleChanged" size="140px 32px"/>
-                </BoxLayout>
+                <!-- Separator: Row 1 -> Row 2 -->
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -180px" width="900px"/>
 
-                <BoxLayout profile="EM_RowBoxH" position="10px -90px" width="360px">
-                    <Text profile="EM_InfoLabel" text="$l10n_em_shift_label" width="120px"/>
-                    <MultiTextOption profile="EM_InfoSelector" id="shiftStartSelector" onClick="onShiftStartChanged" size="90px 32px"/>
-                    <Text profile="EM_InfoLabel" text="$l10n_em_shift_to" width="30px"/>
-                    <MultiTextOption profile="EM_InfoSelector" id="shiftEndSelector" onClick="onShiftEndChanged" size="90px 32px"/>
-                </BoxLayout>
+                <!-- Row 2: Workflow Builder (Full Width) -->
+                <Text profile="EM_SectionTitle" position="0px -200px" text="$l10n_em_workflow_builder"/>
 
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -135px" width="360px"/>
+                <Text profile="EM_RowLabel" position="50px -230px" text="$l10n_em_available_tasks" width="250px"/>
+                <Text profile="EM_RowLabel" position="450px -230px" text="$l10n_em_workflow_queue" width="250px"/>
 
-                <Text profile="EM_SectionTitle" position="10px -148px" text="$l10n_em_employee_skills_title"/>
-                <Text profile="EM_SkillXP" id="txtSkillsSummary" position="10px -168px" width="360px"/>
-
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -195px" width="360px"/>
-
-                <Text profile="EM_SectionTitle" position="10px -208px" text="$l10n_em_workflow_builder"/>
-
-                <Text profile="EM_InfoLabel" position="10px -230px" text="$l10n_em_available_tasks" width="160px" textSize="14px"/>
-                <Text profile="EM_InfoLabel" position="200px -230px" text="$l10n_em_workflow_queue" width="160px" textSize="14px"/>
-
-                <SmoothList id="availableTasksList" profile="WE_TaskList" position="10px -250px" width="150px" height="450px">
-                    <ListItem profile="EM_ListItem" height="64px" width="140px">
+                <!-- List: Available -->
+                <SmoothList id="availableTasksList" profile="WE_TaskList" position="50px -260px" width="300px" height="400px">
+                    <ListItem profile="EM_ListItem" height="64px" width="280px">
                         <Text profile="fs25_textDefault" name="title" textSize="16px"/>
                     </ListItem>
                 </SmoothList>
 
-                <BoxLayout profile="EM_ColBoxV" position="170px -370px" width="60px">
-                    <Button profile="buttonActivate" text=">&gt;&gt;" onClick="onTaskAdd" size="55px 32px"/>
-                    <Button profile="buttonActivate" text="&lt;&lt;" onClick="onTaskRemove" size="55px 32px"/>
+                <!-- Buttons: Add/Remove (Centered between lists) -->
+                <BoxLayout profile="EM_ColBoxV" position="370px -690px" width="60px">
+                    <Button profile="buttonActivate" text="&lt;&lt;" onClick="onTaskRemove">
+                        <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+                    </Button>
                 </BoxLayout>
 
-                <SmoothList id="queueList" profile="WE_TaskList" position="200px -250px" width="150px" height="450px">
-                    <ListItem profile="EM_ListItem" height="64px" width="140px">
+                <BoxLayout profile="EM_ColBoxV" position="500px -690px" width="60px">
+                    <Button profile="buttonActivate" text="&gt;&gt;" onClick="onTaskAdd">
+                        <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+                    </Button>
+                </BoxLayout>
+
+                <!-- List: Queue -->
+                <SmoothList id="queueList" profile="WE_TaskList" position="450px -260px" width="300px" height="400px">
+                    <ListItem profile="EM_ListItem" height="64px" width="280px">
                         <Text profile="fs25_textDefault" name="title" textSize="16px"/>
                     </ListItem>
                 </SmoothList>
 
-                <BoxLayout profile="EM_ColBoxV" position="365px -370px" width="55px">
-                    <Button profile="buttonActivate" text="^" onClick="onTaskUp" size="42px 32px"/>
-                    <Button profile="buttonActivate" text="v" onClick="onTaskDown" size="42px 32px"/>
+                <!-- Buttons: Up/Down (Right of queue) -->
+                <BoxLayout profile="EM_ColBoxV" position="770px -690px" width="60px">
+                    <Button profile="buttonActivate" text="^" onClick="onTaskUp">
+                        <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+                    </Button>
                 </BoxLayout>
 
-                <Text profile="EM_SkillXP" id="txtStatusMessage" position="10px -720px" width="360px"/>
+                <BoxLayout profile="EM_ColBoxV" position="900px -690px" width="60px">
+                    <Button profile="buttonActivate" text="v" onClick="onTaskDown">
+                        <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+                    </Button>
+                </BoxLayout>
 
+                <Text profile="EM_SkillXP" id="txtStatusMessage" position="0px -570px" width="900px"/>
             </GuiElement>
         </GuiElement>
 
-        <Text profile="emMenuEmptyText" id="emptyText" text="$l10n_em_error_no_hired" visible="false" />
+        <Text profile="EM_EmptyText" id="emptyText" text="$l10n_em_error_no_hired" visible="false" />
     </GuiElement>
 </GUI>
