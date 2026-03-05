@@ -17,6 +17,8 @@ function EmployeeManager:new(mission)
     self.fieldConfigs = {}
     self.employeeTemplates = {}
 
+    self.nextEmployeeId = 1
+
     self.lastPoolRefreshDay = 0
     self.POOL_REFRESH_DAYS = 3
     self.POOL_MIN = 8
@@ -544,6 +546,13 @@ function EmployeeManager:loadEmployeeTemplates(modDirectory)
             technicalMin = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#technicalMin"), 1),
             technicalMax = Utils.getNoNil(getXMLInt(xmlFile, skillsKey .. "#technicalMax"), 3),
             possibleTraits = possibleTraits,
+            age = Utils.getNoNil(getXMLInt(xmlFile, key .. "#age"), 30),
+            nationality = Utils.getNoNil(getXMLString(xmlFile, key .. "#nationality"), "FR"),
+            gender = Utils.getNoNil(getXMLString(xmlFile, key .. "#gender"), "male"),
+            bioKey = getXMLString(xmlFile, key .. "#bio"),
+            personalityKey = getXMLString(xmlFile, key .. "#personality"),
+            experienceKey = getXMLString(xmlFile, key .. "#experience"),
+            quoteKey = getXMLString(xmlFile, key .. "#quote"),
         }
 
         table.insert(self.employeeTemplates, template)
@@ -587,7 +596,8 @@ function EmployeeManager:generateEmployeeFromTemplate()
     end
 
     local template = available[math.random(#available)]
-    local id = #self.employees + 1
+    local id = self.nextEmployeeId
+    self.nextEmployeeId = self.nextEmployeeId + 1
     local name = template.firstName .. " " .. template.lastName
 
     local skills = {
@@ -601,6 +611,14 @@ function EmployeeManager:generateEmployeeFromTemplate()
     if template.possibleTraits and #template.possibleTraits > 0 then
         employee.traits = TraitSystem.selectTraits(template.possibleTraits)
     end
+
+    employee.age = (template.age or 30) + math.random(0, 5)
+    employee.nationality = template.nationality or "FR"
+    employee.gender = template.gender or "male"
+    employee.bioKey = template.bioKey
+    employee.personalityKey = template.personalityKey
+    employee.experienceKey = template.experienceKey
+    employee.quoteKey = template.quoteKey
 
     table.insert(self.employees, employee)
     local traitLog = (#employee.traits > 0) and table.concat(employee.traits, ",") or "none"
@@ -871,6 +889,14 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
         setXMLBool(xmlFile, base .. "#isOnBreak", e.isOnBreak or false)
         setXMLFloat(xmlFile, base .. "#milestoneWageMult", e.milestoneWageMult or 1.0)
 
+        setXMLInt(xmlFile, base .. "#age", e.age or 30)
+        setXMLString(xmlFile, base .. "#nationality", e.nationality or "FR")
+        setXMLString(xmlFile, base .. "#gender", e.gender or "male")
+        if e.bioKey then setXMLString(xmlFile, base .. "#bioKey", e.bioKey) end
+        if e.personalityKey then setXMLString(xmlFile, base .. "#personalityKey", e.personalityKey) end
+        if e.experienceKey then setXMLString(xmlFile, base .. "#experienceKey", e.experienceKey) end
+        if e.quoteKey then setXMLString(xmlFile, base .. "#quoteKey", e.quoteKey) end
+
         local queue = e.taskQueue or {}
         for qi, taskName in ipairs(queue) do
             local taskKey = string.format("%s.taskQueue.task(%d)", base, qi - 1)
@@ -878,6 +904,7 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
         end
     end
 
+    setXMLInt(xmlFile, key .. ".poolState#nextEmployeeId", self.nextEmployeeId)
     setXMLInt(xmlFile, key .. ".poolState#lastRefreshDay", self.lastPoolRefreshDay or 0)
     setXMLInt(xmlFile, key .. ".poolState#lastPaymentPeriod", self.lastPaymentPeriod or 0)
 
@@ -959,6 +986,14 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         emp.isOnBreak = Utils.getNoNil(getXMLBool(xmlFile, base .. "#isOnBreak"), false)
         emp.milestoneWageMult = Utils.getNoNil(getXMLFloat(xmlFile, base .. "#milestoneWageMult"), 1.0)
 
+        emp.age = Utils.getNoNil(getXMLInt(xmlFile, base .. "#age"), 30)
+        emp.nationality = Utils.getNoNil(getXMLString(xmlFile, base .. "#nationality"), "FR")
+        emp.gender = Utils.getNoNil(getXMLString(xmlFile, base .. "#gender"), "male")
+        emp.bioKey = getXMLString(xmlFile, base .. "#bioKey")
+        emp.personalityKey = getXMLString(xmlFile, base .. "#personalityKey")
+        emp.experienceKey = getXMLString(xmlFile, base .. "#experienceKey")
+        emp.quoteKey = getXMLString(xmlFile, base .. "#quoteKey")
+
         emp.taskQueue = {}
         local qi = 0
         while true do
@@ -973,6 +1008,17 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         i = i + 1
     end
 
+    -- Compute max ID from loaded employees as safety fallback
+    local maxId = 0
+    for _, emp in ipairs(self.employees) do
+        if emp.id > maxId then maxId = emp.id end
+    end
+    self.nextEmployeeId = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#nextEmployeeId"), maxId + 1)
+    -- Ensure nextEmployeeId is always above any loaded ID (guards against stale save data)
+    if self.nextEmployeeId <= maxId then
+        self.nextEmployeeId = maxId + 1
+    end
+
     self.lastPoolRefreshDay = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#lastRefreshDay"), 0)
     self.lastPaymentPeriod = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#lastPaymentPeriod"), 0)
 
@@ -980,7 +1026,11 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         g_parkingManager:loadFromXMLFile(xmlFile, key .. ".parking")
     end
 
-    CustomUtils:info("[EmployeeManager] Loaded %d employees from savegame", #self.employees)
+    local hiredCount = 0
+    for _, emp in ipairs(self.employees) do
+        if emp.isHired then hiredCount = hiredCount + 1 end
+    end
+    CustomUtils:info("[EmployeeManager] Loaded %d employees (%d hired), nextEmployeeId=%d", #self.employees, hiredCount, self.nextEmployeeId)
 
     local numToGenerate = 10 - #self.employees
     if numToGenerate > 0 then
