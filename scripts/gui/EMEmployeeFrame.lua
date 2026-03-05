@@ -95,7 +95,16 @@ function EMEmployeeFrame:populateCellForItemInSection(list, section, index, cell
 
     local titleEl    = cell:getAttribute("title")
     local subtitleEl = cell:getAttribute("subtitle")
+    local avatarEl   = cell:getAttribute("avatar")
     local iconEl     = cell:getAttribute("icon")
+
+    if avatarEl then
+        avatarEl:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
+        avatarEl:setVisible(true)
+    end
+    if iconEl then
+        iconEl:setVisible(false)
+    end
 
     if titleEl then
         titleEl:setText(emp.name or "???")
@@ -124,10 +133,6 @@ function EMEmployeeFrame:populateCellForItemInSection(list, section, index, cell
             subtitleEl:setText(string.format("%s | %s/h", traitName, g_i18n:formatMoney(hourly, 0, true, false)))
         end
     end
-
-    if iconEl then
-        iconEl:setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_character")
-    end
 end
 
 function EMEmployeeFrame:onListSelectionChanged(list, section, index)
@@ -152,8 +157,19 @@ function EMEmployeeFrame:rebuildTable()
     self.employeeList:reloadData()
 
     local hasItems = #self.employees > 0
-    if self.mainBox then self.mainBox:setVisible(hasItems) end
-    if self.emptyText then self.emptyText:setVisible(not hasItems) end
+
+    if self.employeesContainer then
+        self.employeesContainer:setVisible(hasItems)
+    end
+    if self.noEmployeesContainer then
+        self.noEmployeesContainer:setVisible(not hasItems)
+    end
+
+    -- Hide detail panels when rebuilding
+    if self.detailPanel then self.detailPanel:setVisible(false) end
+    if self.rightPanel then self.rightPanel:setVisible(false) end
+    if self.columnSeparator then self.columnSeparator:setVisible(false) end
+    if self.noSelectedText then self.noSelectedText:setVisible(not hasItems) end
 
     if hasItems then
         self.employeeList:setSelectedIndex(1, true, 0)
@@ -175,6 +191,17 @@ function EMEmployeeFrame:rebuildTable()
     self:updateMenuButtons()
 end
 
+function EMEmployeeFrame:setStatusBarValue(barElement, value)
+    if barElement == nil or barElement.parent == nil then return end
+    local fullWidth = barElement.parent.absSize[1] - (barElement.margin[1] or 0) * 2
+    local minSize = 0
+    if barElement.startSize ~= nil then
+        minSize = barElement.startSize[1] + barElement.endSize[1]
+    end
+    local clampedValue = math.max(0, math.min(1, value))
+    barElement:setSize(math.max(minSize, fullWidth * clampedValue), nil)
+end
+
 function EMEmployeeFrame:displayEmployeeDetails(index)
     local emp = self.employees[index]
     if emp == nil then
@@ -182,49 +209,37 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
         return
     end
 
+    -- Show detail panels
     if self.detailPanel then self.detailPanel:setVisible(true) end
+    if self.rightPanel then self.rightPanel:setVisible(true) end
+    if self.columnSeparator then self.columnSeparator:setVisible(true) end
+    if self.noSelectedText then self.noSelectedText:setVisible(false) end
 
+    -- Portrait
+    if self.detailAvatar then
+        self.detailAvatar:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
+    end
+
+    -- Identity
     if self.txtName then self.txtName:setText(emp.name) end
     if self.txtId then self.txtId:setText(string.format("ID: %d", emp.id)) end
 
+    -- Status
     if self.txtStatus then
         local statusKey = emp.isHired and "em_status_hired" or "em_status_available"
         self.txtStatus:setText(g_i18n:getText(statusKey))
     end
 
-    if self.txtTrait then
-        local traitNames = emp.getTraitName and emp:getTraitName()
-        if traitNames then
-            self.txtTrait:setText(traitNames)
-        else
-            self.txtTrait:setText(g_i18n:getText("em_none"))
-        end
-    end
-
-    if self.txtAssignedField then
-        if emp.targetFieldId then
-            self.txtAssignedField:setText(string.format("Field %d", emp.targetFieldId))
-        else
-            self.txtAssignedField:setText(g_i18n:getText("em_none"))
-        end
-    end
-
+    -- Skills with progress bars
     self:displaySkills(emp)
-    self:displayWorkStats(emp)
 
-    if self.txtWorkflowSummary then
-        local queue = emp.taskQueue or {}
-        if #queue > 0 then
-            local parts = {}
-            for i, taskName in ipairs(queue) do
-                table.insert(parts, string.format("%d. %s", i, taskName))
-            end
-            self.txtWorkflowSummary:setText(table.concat(parts, " > "))
-        else
-            self.txtWorkflowSummary:setText(g_i18n:getText("em_none"))
-        end
+    -- Traits
+    if self.txtTraitsList then
+        local traitName = emp.getTraitName and emp:getTraitName() or nil
+        self.txtTraitsList:setText(traitName or g_i18n:getText("em_none"))
     end
 
+    -- Wage
     if self.txtWage then
         local hourly = emp.getHourlyWage and emp:getHourlyWage() or 0
         local marketMult = 1.0
@@ -254,47 +269,94 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
         self.txtWageBreakdown:setText(parts)
     end
 
-    self:displayPerformanceStats(emp)
+    -- Toggle Column 3 content based on hired/available
+    local isHired = emp.isHired
+    if self.hiredInfoSection then self.hiredInfoSection:setVisible(isHired) end
+    if self.availableInfoSection then self.availableInfoSection:setVisible(not isHired) end
+
+    if isHired then
+        self:displayWorkStats(emp)
+        self:displayPerformanceStats(emp)
+
+        -- Workflow summary
+        if self.txtWorkflowSummary then
+            local queue = emp.taskQueue or {}
+            if #queue > 0 then
+                local queueParts = {}
+                for i, taskName in ipairs(queue) do
+                    table.insert(queueParts, string.format("%d. %s", i, taskName))
+                end
+                self.txtWorkflowSummary:setText(table.concat(queueParts, " > "))
+            else
+                self.txtWorkflowSummary:setText(g_i18n:getText("em_none"))
+            end
+        end
+    else
+        self:displayPersonalInfo(emp)
+    end
 end
 
 function EMEmployeeFrame:displaySkills(employee)
     local skills  = employee.skills   or { driving = 1, harvesting = 1, technical = 1 }
-    local skillXP = employee.skillXP  or { driving = 0, harvesting = 0, technical = 0 }
     local maxLevel = SkillSystem.MAX_LEVEL
 
     local skillDefs = {
-        { key = "driving",    starsId = "skillDrivingStars",    xpId = "skillDrivingXP" },
-        { key = "harvesting", starsId = "skillHarvestingStars", xpId = "skillHarvestingXP" },
-        { key = "technical",  starsId = "skillTechnicalStars",  xpId = "skillTechnicalXP" },
+        { key = "driving",    barId = "barSkillDriving",    levelId = "txtSkillDrivingLevel" },
+        { key = "harvesting", barId = "barSkillHarvesting", levelId = "txtSkillHarvestingLevel" },
+        { key = "technical",  barId = "barSkillTechnical",  levelId = "txtSkillTechnicalLevel" },
     }
 
     for _, def in ipairs(skillDefs) do
         local level = math.min(maxLevel, math.max(1, skills[def.key] or 1))
-        local xp    = skillXP[def.key] or 0
-        local xpNeeded = SkillSystem.getXPNeeded(level)
+        local ratio = level / maxLevel
 
-        -- Compact bar: [####------] 4/10
-        local filled = math.min(level, maxLevel)
-        local bar = string.rep("#", filled) .. string.rep("-", maxLevel - filled)
-        local starsText = string.format("[%s] %d/%d", bar, level, maxLevel)
-
-        -- Add milestone badge
-        local milestoneTitle = MilestoneSystem.getMilestoneTitle(level)
-        if milestoneTitle then
-            starsText = starsText .. " " .. g_i18n:getText(milestoneTitle)
+        local barElement = self[def.barId]
+        if barElement then
+            self:setStatusBarValue(barElement, ratio)
         end
 
-        local starsElement = self[def.starsId]
-        if starsElement then starsElement:setText(starsText) end
-
-        local xpElement = self[def.xpId]
-        if xpElement then
+        local levelElement = self[def.levelId]
+        if levelElement then
             if level >= maxLevel then
-                xpElement:setText("MAX")
+                levelElement:setText("MAX")
             else
-                xpElement:setText(string.format("XP: %d/%d", math.floor(xp), xpNeeded))
+                levelElement:setText(string.format("%d/%d", level, maxLevel))
             end
         end
+    end
+end
+
+function EMEmployeeFrame:displayPersonalInfo(employee)
+    -- Age
+    if self.txtPersonalAge then
+        local age = employee.age or 30
+        self.txtPersonalAge:setText(tostring(age))
+    end
+
+    -- Nationality
+    if self.txtPersonalNationality then
+        local natKey = "em_nationality_" .. (employee.nationality or "FR")
+        local natText = g_i18n:getText(natKey)
+        if natText == natKey then
+            natText = employee.nationality or "FR"
+        end
+        self.txtPersonalNationality:setText(natText)
+    end
+
+    -- Biography
+    if self.txtPersonalBio then
+        local bioKey = employee.bioKey or "em_bio_default"
+        local bioText = g_i18n:getText(bioKey)
+        if bioText == bioKey then bioText = g_i18n:getText("em_bio_default") end
+        self.txtPersonalBio:setText(bioText)
+    end
+
+    -- Quote
+    if self.txtPersonalQuote then
+        local quoteKey = employee.quoteKey or "em_quote_default"
+        local quoteText = g_i18n:getText(quoteKey)
+        if quoteText == quoteKey then quoteText = g_i18n:getText("em_quote_default") end
+        self.txtPersonalQuote:setText("\"" .. quoteText .. "\"")
     end
 end
 
@@ -329,13 +391,13 @@ function EMEmployeeFrame:displayWorkStats(employee)
         local fatigue = employee.fatigueLevel or 0
         self.statFatigue:setText(string.format("%.0f%%", fatigue))
         if fatigue >= 80 then
-            self.statFatigue:setTextColor(1, 0.2, 0.2, 1) -- red
+            self.statFatigue:setTextColor(1, 0.2, 0.2, 1)
         elseif fatigue >= 60 then
-            self.statFatigue:setTextColor(1, 0.5, 0, 1) -- orange
+            self.statFatigue:setTextColor(1, 0.5, 0, 1)
         elseif fatigue >= 40 then
-            self.statFatigue:setTextColor(1, 1, 0, 1) -- yellow
+            self.statFatigue:setTextColor(1, 1, 0, 1)
         else
-            self.statFatigue:setTextColor(0.2, 1, 0.2, 1) -- green
+            self.statFatigue:setTextColor(0.2, 1, 0.2, 1)
         end
     end
 
@@ -428,6 +490,8 @@ end
 
 function EMEmployeeFrame:clearDetails()
     if self.detailPanel then self.detailPanel:setVisible(false) end
+    if self.rightPanel then self.rightPanel:setVisible(false) end
+    if self.columnSeparator then self.columnSeparator:setVisible(false) end
 end
 
 function EMEmployeeFrame:updateMenuButtons()

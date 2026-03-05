@@ -166,9 +166,17 @@ function EMFieldFrame:displayFieldDetails(index)
         self.txtFieldCondition:setText(conditionText)
     end
 
-    local assignedText = self:getAssignedEmployeeText(fieldData.fieldId)
-    if self.txtAssignedEmployee then
-        self.txtAssignedEmployee:setText(assignedText)
+    local employee = self:getAssignedEmployee(fieldData.fieldId)
+    if employee then
+        if self.assignedEmployeeSection then self.assignedEmployeeSection:setVisible(true) end
+        if self.txtNoEmployee then self.txtNoEmployee:setVisible(false) end
+        self:displayAssignedEmployee(employee)
+    else
+        if self.assignedEmployeeSection then self.assignedEmployeeSection:setVisible(false) end
+        if self.txtNoEmployee then
+            self.txtNoEmployee:setVisible(true)
+            self.txtNoEmployee:setText(g_i18n:getText("em_none"))
+        end
     end
 end
 
@@ -227,20 +235,167 @@ function EMFieldFrame:getFieldCondition(field)
     return g_i18n:getText("em_none")
 end
 
-function EMFieldFrame:getAssignedEmployeeText(fieldId)
-    if g_employeeManager == nil then return g_i18n:getText("em_none") end
+function EMFieldFrame:getAssignedEmployee(fieldId)
+    if g_employeeManager == nil then return nil end
 
     local hiredList = g_employeeManager:getHiredEmployees()
     for _, emp in ipairs(hiredList) do
         if emp.targetFieldId == fieldId then
-            return emp.name
+            return emp
         end
     end
-    return g_i18n:getText("em_none")
+    return nil
+end
+
+function EMFieldFrame:displayAssignedEmployee(emp)
+    -- Name
+    if self.txtAssignedEmployee then
+        self.txtAssignedEmployee:setText(emp.name or "???")
+    end
+
+    -- Status
+    if self.txtEmpStatus then
+        local statusText
+        if emp.isUnpaid then
+            statusText = g_i18n:getText("em_status_unpaid")
+            self.txtEmpStatus:setTextColor(1, 0.2, 0.2, 1)
+        elseif emp.isOnBreak then
+            statusText = g_i18n:getText("em_status_on_break")
+            self.txtEmpStatus:setTextColor(1, 1, 0, 1)
+        elseif emp.currentJob then
+            if emp.currentJob.type == "RETURN_TO_PARKING" then
+                statusText = g_i18n:getText("em_status_returning")
+            else
+                statusText = emp.currentJob.workType or g_i18n:getText("em_status_working")
+            end
+            self.txtEmpStatus:setTextColor(0.2, 1, 0.2, 1)
+        else
+            statusText = g_i18n:getText("em_idle")
+            self.txtEmpStatus:setTextColor(1, 1, 1, 0.6)
+        end
+        self.txtEmpStatus:setText(statusText)
+    end
+
+    -- Vehicle
+    if self.txtEmpVehicle then
+        local vehicleName = g_i18n:getText("em_none")
+        if emp.assignedVehicleId and g_employeeManager then
+            local vehicle = g_employeeManager:getVehicleById(emp.assignedVehicleId)
+            if vehicle then
+                local storeItem = g_storeManager:getItemByXMLFilename(vehicle.configFileName)
+                if storeItem then
+                    vehicleName = storeItem.name
+                else
+                    vehicleName = vehicle.typeName or tostring(emp.assignedVehicleId)
+                end
+            end
+        end
+        self.txtEmpVehicle:setText(vehicleName)
+    end
+
+    -- Shift
+    if self.txtEmpShift then
+        self.txtEmpShift:setText(string.format("%02d:00 %s %02d:00",
+            emp.shiftStart or 6,
+            g_i18n:getText("em_shift_to"),
+            emp.shiftEnd or 18))
+    end
+
+    -- Fatigue
+    if self.txtEmpFatigue then
+        local fatigue = emp.fatigueLevel or 0
+        self.txtEmpFatigue:setText(string.format("%.0f%%", fatigue))
+        if fatigue >= 80 then
+            self.txtEmpFatigue:setTextColor(1, 0.2, 0.2, 1)
+        elseif fatigue >= 60 then
+            self.txtEmpFatigue:setTextColor(1, 0.5, 0, 1)
+        elseif fatigue >= 40 then
+            self.txtEmpFatigue:setTextColor(1, 1, 0, 1)
+        else
+            self.txtEmpFatigue:setTextColor(0.2, 1, 0.2, 1)
+        end
+    end
+
+    -- Skills
+    self:displaySkills(emp)
+
+    -- Workflow queue
+    if self.txtEmpWorkflow then
+        local queue = emp.taskQueue or {}
+        if #queue > 0 then
+            local parts = {}
+            for i, taskName in ipairs(queue) do
+                table.insert(parts, string.format("%d. %s", i, taskName))
+            end
+            self.txtEmpWorkflow:setText(table.concat(parts, " > "))
+        else
+            self.txtEmpWorkflow:setText(g_i18n:getText("em_none"))
+        end
+    end
+
+    -- Current task
+    if self.txtEmpCurrentTask then
+        if emp.currentJob then
+            local jobType = emp.currentJob.workType or emp.currentJob.type or "Unknown"
+            if emp.currentJob.type == "RETURN_TO_PARKING" then
+                jobType = g_i18n:getText("em_status_returning")
+            end
+            local fieldId = emp.currentJob.fieldId
+            if fieldId then
+                self.txtEmpCurrentTask:setText(string.format("%s (Field %d)", jobType, fieldId))
+            else
+                self.txtEmpCurrentTask:setText(jobType)
+            end
+        else
+            self.txtEmpCurrentTask:setText(g_i18n:getText("em_idle"))
+        end
+    end
+end
+
+function EMFieldFrame:setStatusBarValue(barElement, value)
+    if barElement == nil or barElement.parent == nil then return end
+    local fullWidth = barElement.parent.absSize[1] - (barElement.margin[1] or 0) * 2
+    local minSize = 0
+    if barElement.startSize ~= nil then
+        minSize = barElement.startSize[1] + barElement.endSize[1]
+    end
+    local clampedValue = math.max(0, math.min(1, value))
+    barElement:setSize(math.max(minSize, fullWidth * clampedValue), nil)
+end
+
+function EMFieldFrame:displaySkills(employee)
+    local skills = employee.skills or { driving = 1, harvesting = 1, technical = 1 }
+    local maxLevel = SkillSystem.MAX_LEVEL
+
+    local skillDefs = {
+        { key = "driving",    barId = "barEmpDriving",    levelId = "txtEmpDrivingLevel" },
+        { key = "harvesting", barId = "barEmpHarvesting", levelId = "txtEmpHarvestingLevel" },
+        { key = "technical",  barId = "barEmpTechnical",  levelId = "txtEmpTechnicalLevel" },
+    }
+
+    for _, def in ipairs(skillDefs) do
+        local level = math.min(maxLevel, math.max(1, skills[def.key] or 1))
+        local ratio = level / maxLevel
+
+        local barElement = self[def.barId]
+        if barElement then
+            self:setStatusBarValue(barElement, ratio)
+        end
+
+        local levelElement = self[def.levelId]
+        if levelElement then
+            if level >= maxLevel then
+                levelElement:setText("MAX")
+            else
+                levelElement:setText(string.format("%d/%d", level, maxLevel))
+            end
+        end
+    end
 end
 
 function EMFieldFrame:clearDetails()
     if self.detailPanel then self.detailPanel:setVisible(false) end
+    if self.assignedEmployeeSection then self.assignedEmployeeSection:setVisible(false) end
 end
 
 function EMFieldFrame:updateMenuButtons()

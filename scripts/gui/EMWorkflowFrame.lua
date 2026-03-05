@@ -97,9 +97,10 @@ function EMWorkflowFrame:debugDumpElements()
     CustomUtils:info("=== [EMWorkflowFrame] DEBUG DUMP ===")
 
     local ids = {
-        "mainBox", "employeeList", "fieldSelector", "vehicleSelector",
-        "shiftStartSelector", "shiftEndSelector", "txtSkillsSummary",
-        "availableTasksList", "queueList", "txtStatusMessage", "emptyText",
+        "mainBox", "employeeList", "employeesContainer", "fieldSelector", "vehicleSelector",
+        "shiftStartSelector", "shiftEndSelector", "barSkillDriving", "barSkillHarvesting",
+        "barSkillTechnical", "txtSkillDrivingLevel", "txtSkillHarvestingLevel",
+        "txtSkillTechnicalLevel", "availableTasksList", "queueList", "txtStatusMessage", "emptyText",
     }
     for _, id in ipairs(ids) do
         local el = self[id]
@@ -168,7 +169,17 @@ function EMWorkflowFrame:populateCellForItemInSection(list, section, index, cell
 
     local titleEl    = cell:getAttribute("title")
     local subtitleEl = cell:getAttribute("subtitle")
+    local avatarEl   = cell:getAttribute("avatar")
     local iconEl     = cell:getAttribute("icon")
+
+    -- Show avatar, hide atlas icon
+    if avatarEl then
+        avatarEl:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
+        avatarEl:setVisible(true)
+    end
+    if iconEl then
+        iconEl:setVisible(false)
+    end
 
     if titleEl then
         titleEl:setText(string.format("%s (ID:%d)", emp.name, emp.id))
@@ -178,15 +189,15 @@ function EMWorkflowFrame:populateCellForItemInSection(list, section, index, cell
         subtitleEl:setText(string.format("D:%d H:%d T:%d",
             skills.driving or 1, skills.harvesting or 1, skills.technical or 1))
     end
-    if iconEl then
-        iconEl:setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_character")
-    end
 end
 
 function EMWorkflowFrame:onListSelectionChanged(list, section, index)
     local emp = self.hiredEmployees[index]
     if emp then
+        if self.mainBox then self.mainBox:setVisible(true) end
         self:loadEmployeeData(emp)
+    else
+        if self.mainBox then self.mainBox:setVisible(false) end
     end
     self:updateMenuButtons()
 end
@@ -201,8 +212,10 @@ function EMWorkflowFrame:refreshData()
     self.employeeList:reloadData()
 
     local hasEmployees = #self.hiredEmployees > 0
-    if self.mainBox    then self.mainBox:setVisible(hasEmployees) end
-    if self.emptyText  then self.emptyText:setVisible(not hasEmployees) end
+
+    if self.employeesContainer then self.employeesContainer:setVisible(hasEmployees) end
+    if self.mainBox then self.mainBox:setVisible(false) end
+    if self.emptyText then self.emptyText:setVisible(not hasEmployees) end
 
     if not hasEmployees then
         self:updateMenuButtons()
@@ -235,6 +248,7 @@ function EMWorkflowFrame:refreshData()
     end
 
     self.employeeList:setSelectedIndex(1, true, 0)
+    if self.mainBox then self.mainBox:setVisible(true) end
     self:loadEmployeeData(self.hiredEmployees[1])
     self:updateMenuButtons()
 end
@@ -275,16 +289,7 @@ function EMWorkflowFrame:loadEmployeeData(employee)
         self.shiftEndSelector:setState((employee.shiftEnd or 18) + 1, false)
     end
 
-    if self.txtSkillsSummary then
-        local skills = employee.skills or {}
-        local maxLvl = SkillSystem.MAX_LEVEL
-        self.txtSkillsSummary:setText(string.format(
-            "%s: %d/%d  |  %s: %d/%d  |  %s: %d/%d",
-            g_i18n:getText("em_skill_driving"),    skills.driving or 1,    maxLvl,
-            g_i18n:getText("em_skill_harvesting"), skills.harvesting or 1, maxLvl,
-            g_i18n:getText("em_skill_technical"),  skills.technical or 1,  maxLvl
-        ))
-    end
+    self:displaySkills(employee)
 
     self:refreshAvailableTasks(employee)
     self:refreshQueueList(employee)
@@ -327,6 +332,47 @@ function EMWorkflowFrame:refreshQueueList(employee)
     self.queueTasksRenderer:setData(items)
     if self.queueList then
         self.queueList:reloadData()
+    end
+end
+
+function EMWorkflowFrame:setStatusBarValue(barElement, value)
+    if barElement == nil or barElement.parent == nil then return end
+    local fullWidth = barElement.parent.absSize[1] - (barElement.margin[1] or 0) * 2
+    local minSize = 0
+    if barElement.startSize ~= nil then
+        minSize = barElement.startSize[1] + barElement.endSize[1]
+    end
+    local clampedValue = math.max(0, math.min(1, value))
+    barElement:setSize(math.max(minSize, fullWidth * clampedValue), nil)
+end
+
+function EMWorkflowFrame:displaySkills(employee)
+    local skills = employee.skills or { driving = 1, harvesting = 1, technical = 1 }
+    local maxLevel = SkillSystem.MAX_LEVEL
+
+    local skillDefs = {
+        { key = "driving",    barId = "barSkillDriving",    levelId = "txtSkillDrivingLevel" },
+        { key = "harvesting", barId = "barSkillHarvesting", levelId = "txtSkillHarvestingLevel" },
+        { key = "technical",  barId = "barSkillTechnical",  levelId = "txtSkillTechnicalLevel" },
+    }
+
+    for _, def in ipairs(skillDefs) do
+        local level = math.min(maxLevel, math.max(1, skills[def.key] or 1))
+        local ratio = level / maxLevel
+
+        local barElement = self[def.barId]
+        if barElement then
+            self:setStatusBarValue(barElement, ratio)
+        end
+
+        local levelElement = self[def.levelId]
+        if levelElement then
+            if level >= maxLevel then
+                levelElement:setText("MAX")
+            else
+                levelElement:setText(string.format("%d/%d", level, maxLevel))
+            end
+        end
     end
 end
 
