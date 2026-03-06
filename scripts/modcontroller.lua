@@ -52,7 +52,7 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
     end)
 
     if savegame ~= nil then
-        self:loadEmployees()
+        self:loadEmployees(savegame.savegameDirectory)
     end
 
     if #g_employeeManager.employees == 0 then
@@ -91,14 +91,26 @@ function ModController:saveEmployees()
     g_employeeManager:saveToXMLFile(xmlFile, "employeeManager")
     saveXMLFile(xmlFile)
     delete(xmlFile)
-    CustomUtils:info("[ModController] Saved %d employees to %s", #g_employeeManager.employees, xmlPath)
+
+    local hiredCount = 0
+    for _, e in ipairs(g_employeeManager.employees) do
+        if e.isHired then hiredCount = hiredCount + 1 end
+    end
+    CustomUtils:info("[ModController] Saved %d employees (%d hired) to %s", #g_employeeManager.employees, hiredCount, xmlPath)
 end
 
-function ModController:loadEmployees()
-    if g_employeeManager == nil then return end
+function ModController:loadEmployees(savegameDir)
+    if g_employeeManager == nil then
+        CustomUtils:warning("[ModController] loadEmployees: g_employeeManager is nil, skipping")
+        return
+    end
 
-    local dir = g_currentMission.missionInfo.savegameDirectory
-    if dir == nil then return end
+    local dir = savegameDir or (g_currentMission.missionInfo and g_currentMission.missionInfo.savegameDirectory)
+    if dir == nil then
+        CustomUtils:warning("[ModController] No savegame directory available for loading (savegameDir=%s, missionInfo=%s)",
+            tostring(savegameDir), tostring(g_currentMission.missionInfo))
+        return
+    end
 
     local xmlPath = dir .. "/employeeManager.xml"
     if not fileExists(xmlPath) then
@@ -106,6 +118,7 @@ function ModController:loadEmployees()
         return
     end
 
+    CustomUtils:info("[ModController] Loading employees from: %s", xmlPath)
     local xmlFile = loadXMLFile("employeeManagerXML", xmlPath)
     if xmlFile == nil or xmlFile == 0 then
         CustomUtils:error("[ModController] Failed to load save file: %s", xmlPath)
@@ -114,7 +127,12 @@ function ModController:loadEmployees()
 
     g_employeeManager:loadFromXMLFile(xmlFile, "employeeManager")
     delete(xmlFile)
-    CustomUtils:info("[ModController] Loaded %d employees from %s", #g_employeeManager.employees, xmlPath)
+
+    local hiredCount = 0
+    for _, e in ipairs(g_employeeManager.employees) do
+        if e.isHired then hiredCount = hiredCount + 1 end
+    end
+    CustomUtils:info("[ModController] Loaded %d employees (%d hired) from %s", #g_employeeManager.employees, hiredCount, xmlPath)
 end
 
 function ModController:deleteMap()

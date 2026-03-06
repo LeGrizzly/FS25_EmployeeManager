@@ -28,6 +28,7 @@
         <text name="em_no_employees" text="Brak dostępnych pracowników." />
         <text name="em_employee_empty" text="Wybierz pracownika, aby zobaczyć szczegóły." />
         <text name="em_employee_status_label" text="Status" />
+        <text name="em_employee_info_title" text="Informacje" />
         <text name="em_employee_skills_title" text="Umiejętności" />
         <text name="em_employee_stats_title" text="Statystyki pracy" />
         <text name="em_stat_hours_worked" text="Przepracowane godziny" />
@@ -160,5 +161,90 @@
 
         <text name="em_label_traits" text="Cechy" />
         <text name="em_wage_milestone" text="Kamień milowy" />
+
+        <!-- 3-Column Layout: Section labels -->
+        <text name="em_personal_info_title" text="Informacje Osobiste" />
+        <text name="em_personal_age" text="Wiek" />
+        <text name="em_personal_nationality" text="Narodowość" />
+        <text name="em_personal_bio" text="Biografia" />
+        <text name="em_personal_personality" text="Osobowość" />
+        <text name="em_personal_experience" text="Doświadczenie" />
+        <text name="em_personal_quote" text="Motto" />
+
+        <!-- Nationalities -->
+        <text name="em_nationality_FR" text="Francuz/ka" />
+        <text name="em_nationality_DE" text="Niemiec/ka" />
+        <text name="em_nationality_PL" text="Polak/Polka" />
+        <text name="em_nationality_US" text="Amerykanin/ka" />
+        <text name="em_nationality_IT" text="Włoch/szka" />
+        <text name="em_nationality_ES" text="Hiszpan/ka" />
+        <text name="em_nationality_UK" text="Brytyjczyk/ka" />
+        <text name="em_nationality_NL" text="Holender/ka" />
+
+        <!-- Defaults -->
+        <text name="em_bio_default" text="Niezawodny pracownik z pasją do rolnictwa." />
+        <text name="em_personality_default" text="Stabilny i niezawodny." />
+        <text name="em_exp_default" text="Ogólne doświadczenie rolnicze." />
+        <text name="em_quote_default" text="Ciężka praca się opłaca." />
+
+        <!-- Personalities -->
+        <text name="em_personality_methodical" text="Metodyczny i precyzyjny. Postępuje zgodnie z procedurami i rzadko popełnia błędy." />
+        <text name="em_personality_curious" text="Z natury ciekawy i chętny do nauki. Zawsze zadaje pytania i próbuje nowych technik." />
+        <text name="em_personality_bold" text="Śmiały i nieustraszony. Podejmuje ryzyko, ale szybko kończy pracę." />
+        <text name="em_personality_patient" text="Cierpliwy i spokojny pod presją. Nigdy się nie spieszy, zawsze dostarcza jakościową pracę." />
+        <text name="em_personality_dedicated" text="Głęboko oddany farmie. Pierwszy przychodzi, ostatni wychodzi." />
+
+        <!-- Experiences -->
+        <text name="em_exp_tractor_veteran" text="Lata doświadczenia z ciągnikami na różnych typach terenu i w różnych warunkach pogodowych." />
+        <text name="em_exp_harvest_specialist" text="Specjalista od żniw — od wyczucia czasu po optymalizację kombajnu." />
+        <text name="em_exp_speed_driver" text="Znany z szybkiego pokrywania pól, czasem kosztem precyzji." />
+        <text name="em_exp_mechanic" text="Solidne zaplecze mechaniczne. Potrafi naprawić i konserwować większość sprzętu rolniczego." />
+        <text name="em_exp_crop_expert" text="Głęboka wiedza o cyklach upraw, warunkach glebowych i optymalnych terminach siewu." />
+        <text name="em_exp_newcomer" text="Nowy w rolnictwie, ale chętny, by udowodnić swoją wartość na polu." />
+        <text name="em_exp_allrounder" text="Złota rączka. Radzi sobie z każdym zadaniem." />
+
+        <!-- Per-employee bios -->
+        <text name="em_bio_dupont" text="Rolnik w trzecim pokoleniu z Normandii. Dorastał wśród sadów jabłkowych i bydła mlecznego." />
+        <text name="em_bio_lefebvre" text="Absolwentka szkoły rolniczej z wyróżnieniem. Zafascynowana zrównoważonym rolnictwem." />
+        <text name="em_bio_moreau" text="Były kierowca rajdowy, który znalazł spokój na wsi. Wciąż prowadzi ciągniki jak samochody wyścigowe." />
+        <text name="em_bio_bernard" text="Inżynierka mechaniczka, która zostawiła miasto dla prostszego życia. Naprawi wszystko dwoma kluczami." />
+        <text name="em_bio_petit" text="Młody zapaleńiec prosto ze szkoły jazdy. Chętny, by udowodnić się za każdą kierownicą." />
+        <text name="em_bio_roux" text="Cierpliwa i wytrwała. Dorastała pomagając dziadkom w ich winnicy w Bordeaux." />
+        <text name="em_bio_garnier" text="Weteran żniw z dwudziestoletnim doświadczeniem. Rozpoznaje każde ziarno na pierwszy rzut oka." />
+        <text name="em_bio_faure" text="Była księgowa, która została rolniczką. Zarządza każdym frankiem z chirurgiczną precyzją." />
+        <text name="em_bio_girard" text="Samouk-mechanik, który potrafi złożyć silnik ciągnika z zamkniętymi oczami. Cichy, ale genialny." />
+        <text name="em_bio_andre" text="Młoda rolniczka obeznana z technologią. Marzy o wprowadzeniu nowoczesnej precyzji do tradycyjnego rolnictwa." />
+        <text name="em_bio_leroy" text="Prosto ze szkoły z gwiazdami w oczach. Czego mu brakuje w umiejętnościach, nadrabia entuzjazmem." />
+        <text name="em_bio_simon" text="Córka słynnego hodowcy. Zdeterminowana, by zbudować własną reputację w uprawie roli." />
+        <text name="em_bio_laurent" text="Spokojny i opanowany. Przez lata zarządzał spółdzielnią, zanim się usamodzielnił." />
+        <text name="em_bio_michel" text="Filar każdego zespołu, do którego dołączy. Dwadzieścia lat doświadczenia i wciąż w świetnej formie." />
+        <text name="em_bio_martinez" text="Przekroczył Pireneje w poszukiwaniu lepszych możliwości. Wnosi hiszpańską pasję na francuskie pola." />
+        <text name="em_bio_dubois" text="Precyzja to jej drugie imię. Była inspektorka jakości w fabryce sprzętu rolniczego." />
+        <text name="em_bio_fontaine" text="Entuzjastyczny uczeń pochłaniający podręczniki rolnicze. Już imponujący jak na swój wiek." />
+        <text name="em_bio_mercier" text="Wolny duch, który pracuje ciężko i bawi się równie mocno. Nie daj się zwieść uśmiechowi." />
+        <text name="em_bio_blanchard" text="Rolnik starej szkoły, który ufa instynktowi bardziej niż technologii. Jego pola są zawsze nienaganne." />
+        <text name="em_bio_chevalier" text="Z natury rywalizacyjna. Od dwóch lat dzierży regionalny rekord szybkości żniw." />
+
+        <!-- Per-employee quotes -->
+        <text name="em_quote_dupont" text="Dobry rolnik czyta ziemię jak książkę." />
+        <text name="em_quote_lefebvre" text="Każde żniwa uczą czegoś nowego." />
+        <text name="em_quote_moreau" text="Szybkość to talent, nie wada." />
+        <text name="em_quote_bernard" text="Jeśli jest zepsute, naprawię. Jeśli działa, ulepszę." />
+        <text name="em_quote_petit" text="Daj mi kluczyki i patrz!" />
+        <text name="em_quote_roux" text="Cierpliwość zamienia nasiona w plony." />
+        <text name="em_quote_garnier" text="Dwadzieścia lat kurzu na butach i nie zmieniłbym nic." />
+        <text name="em_quote_faure" text="Każde nasiono to inwestycja. Zarządzaj nimi mądrze." />
+        <text name="em_quote_girard" text="Dobrze utrzymana maszyna nigdy cię nie zawiedzie." />
+        <text name="em_quote_andre" text="Technologia to przyszłość rolnictwa." />
+        <text name="em_quote_leroy" text="Jestem nowy, ale uczę się szybko. Po prostu patrz." />
+        <text name="em_quote_simon" text="Zbuduję własną spuściznę, pole po polu." />
+        <text name="em_quote_laurent" text="Spokojne ręce dają spokojne żniwa." />
+        <text name="em_quote_michel" text="Doświadczenia nie da się przyspieszyć. Zdobywa się je sezon po sezonie." />
+        <text name="em_quote_martinez" text="Ja przynoszę ogień. Pole daje resztę." />
+        <text name="em_quote_dubois" text="Zmierz dwa razy, orz raz." />
+        <text name="em_quote_fontaine" text="Wiedza to najlepszy nawóz." />
+        <text name="em_quote_mercier" text="Pracuj ciężko, baw się ciężko, zbieraj jeszcze ciężej." />
+        <text name="em_quote_blanchard" text="Ziemia pamięta tych, którzy ją dobrze traktują." />
+        <text name="em_quote_chevalier" text="Rekordy są po to, żeby je bić." />
     </texts>
 </l10n>

@@ -8,23 +8,14 @@ MenuEmployeeManager.MENU_ICON_SLICE_ID = 'MenuEmployeeManager.menuIcon'
 
 MenuEmployeeManager._mt = Class(MenuEmployeeManager, TabbedMenuFrameElement)
 
-MenuEmployeeManager.MODE = {
-    EMPLOYEES = 1,
-    WORKFLOW  = 2,
-}
-
 MenuEmployeeManager.LIST_TYPE = {
-    NEW    = 1,
-    ACTIVE = 2,
-    OWNED  = 3,
-    FIELDS = 4,
+    NEW   = 1,
+    OWNED = 2,
 }
 
 MenuEmployeeManager.LIST_STATE_TEXTS = {
     "em_list_new",
-    "em_list_active",
     "em_list_owned",
-    "em_list_fields",
 }
 
 MenuEmployeeManager.HEADER_TITLE = "em_header_employees"
@@ -37,12 +28,9 @@ function MenuEmployeeManager.new()
 
     self.menuButtonInfo = {}
 
-    self.leftListRenderer       = EmployeeRenderer.new(self)
+    self.leftListRenderer = EmployeeRenderer.new(self)
 
-    self.currentMode     = MenuEmployeeManager.MODE.EMPLOYEES
     self.currentListType = MenuEmployeeManager.LIST_TYPE.NEW
-    self.selectedFieldId = nil
-    self.selectedCrop    = nil
 
     return self
 end
@@ -50,11 +38,6 @@ end
 function MenuEmployeeManager:onGuiSetupFinished()
     CustomUtils:debug("[MenuEmployeeManager] onGuiSetupFinished()")
     MenuEmployeeManager:superClass().onGuiSetupFinished(self)
-end
-
-function MenuEmployeeManager:initialize()
-    CustomUtils:debug("[MenuEmployeeManager] initialize()")
-    MenuEmployeeManager:superClass().initialize(self)
 
     self.leftListTable:setDataSource(self.leftListRenderer)
     self.leftListTable:setDelegate(self.leftListRenderer)
@@ -62,11 +45,11 @@ function MenuEmployeeManager:initialize()
     self.leftListRenderer.indexChangedCallback = function(index)
         self:onLeftListSelectionChanged(index)
     end
+end
 
-    if self.workflowTable then
-        self.workflowTable:setDataSource(self.workflowRenderer)
-        self.workflowTable:setDelegate(self.workflowRenderer)
-    end
+function MenuEmployeeManager:initialize()
+    CustomUtils:debug("[MenuEmployeeManager] initialize()")
+    MenuEmployeeManager:superClass().initialize(self)
 
     local switcherTexts = {}
     for _, textKey in ipairs(MenuEmployeeManager.LIST_STATE_TEXTS) do
@@ -75,16 +58,13 @@ function MenuEmployeeManager:initialize()
     self.pageSwitcher:setTexts(switcherTexts)
 
     self.btnBack          = { inputAction = InputAction.MENU_BACK }
-    self.btnHire          = { inputAction = InputAction.MENU_ACCEPT,  text = g_i18n:getText("em_btn_hire"),          callback = function() self:onHireEmployee() end }
-    self.btnFire          = { inputAction = InputAction.MENU_EXTRA_2, text = g_i18n:getText("em_btn_fire"),          callback = function() self:onFireEmployee() end }
-    self.btnStartWorkflow = { inputAction = InputAction.MENU_ACCEPT,  text = g_i18n:getText("em_btn_start_workflow"),callback = function() self:onStartWorkflow() end }
+    self.btnHire          = { inputAction = InputAction.MENU_ACCEPT,  text = g_i18n:getText("em_btn_hire"),            callback = function() self:onHireEmployee() end }
+    self.btnFire          = { inputAction = InputAction.MENU_EXTRA_2, text = g_i18n:getText("em_btn_fire"),            callback = function() self:onFireEmployee() end }
     self.btnOpenWorkflow  = { inputAction = InputAction.MENU_EXTRA_1, text = g_i18n:getText("em_btn_workflow_editor"), callback = function() self:onOpenWorkflowEditor() end }
 
     self.buttonSets = {
-        [MenuEmployeeManager.LIST_TYPE.NEW]    = { self.btnBack, self.btnHire, self.btnOpenWorkflow },
-        [MenuEmployeeManager.LIST_TYPE.ACTIVE] = { self.btnBack, self.btnOpenWorkflow },
-        [MenuEmployeeManager.LIST_TYPE.OWNED]  = { self.btnBack, self.btnFire, self.btnOpenWorkflow },
-        [MenuEmployeeManager.LIST_TYPE.FIELDS] = { self.btnBack, self.btnStartWorkflow, self.btnOpenWorkflow },
+        [MenuEmployeeManager.LIST_TYPE.NEW]   = { self.btnBack, self.btnHire, self.btnOpenWorkflow },
+        [MenuEmployeeManager.LIST_TYPE.OWNED] = { self.btnBack, self.btnFire, self.btnOpenWorkflow },
     }
 
     self.currentListType = self.pageSwitcher:getState() or MenuEmployeeManager.LIST_TYPE.NEW
@@ -112,13 +92,6 @@ end
 function MenuEmployeeManager:onSwitchPage()
     CustomUtils:debug("[MenuEmployeeManager] onSwitchPage()")
     self.currentListType = self.pageSwitcher:getState()
-
-    if self.currentListType == MenuEmployeeManager.LIST_TYPE.FIELDS then
-        self.currentMode = MenuEmployeeManager.MODE.WORKFLOW
-    else
-        self.currentMode = MenuEmployeeManager.MODE.EMPLOYEES
-    end
-
     self:updateContent()
 end
 
@@ -132,58 +105,43 @@ function MenuEmployeeManager:updateContent()
     local available = g_employeeManager:getAvailableEmployees()
     local hired     = g_employeeManager:getHiredEmployees()
 
-    local active = {}
-    for _, e in ipairs(hired) do
-        if e.currentJob ~= nil then table.insert(active, e) end
-    end
-
-    local fields = {}
-    if g_fieldManager and g_fieldManager.fields then
-        local farmId = g_currentMission:getFarmId()
-        for _, field in pairs(g_fieldManager.fields) do
-            if field ~= nil and field.fieldId ~= nil then
-                local farmland = field:getFarmland()
-                if farmland and g_farmlandManager:getFarmlandOwner(farmland.id) == farmId then
-                    table.insert(fields, {
-                        id   = field.fieldId,
-                        name = string.format("Field %d", field.fieldId),
-                        area = field.fieldArea or 0,
-                    })
-                end
-            end
-        end
-    end
-    table.sort(fields, function(a, b) return a.id < b.id end)
-
     local renderData = {
-        [MenuEmployeeManager.LIST_TYPE.NEW]    = available,
-        [MenuEmployeeManager.LIST_TYPE.ACTIVE] = active,
-        [MenuEmployeeManager.LIST_TYPE.OWNED]  = hired,
-        [MenuEmployeeManager.LIST_TYPE.FIELDS] = fields,
+        [MenuEmployeeManager.LIST_TYPE.NEW]   = available,
+        [MenuEmployeeManager.LIST_TYPE.OWNED] = hired,
     }
 
     self.leftListRenderer:setData(renderData)
     self.leftListTable:reloadData()
 
-    local showWorkflow = (self.currentMode == MenuEmployeeManager.MODE.WORKFLOW)
-    self.employeeInfoContainer:setVisible(false)
-    self.workflowContainer:setVisible(false)
-    self.noSelectedText:setVisible(true)
-
     local hasItem = self.leftListTable:getItemCount() > 0
-    if hasItem then
-        self.leftListTable:setSelectedIndex(1, true)
+
+    -- Toggle visibility of containers
+    if self.employeesContainer then
+        self.employeesContainer:setVisible(hasItem)
+    end
+    if self.noEmployeesContainer then
+        self.noEmployeesContainer:setVisible(not hasItem)
     end
 
-    self:onLeftListSelectionChanged(self.leftListTable.selectedIndex)
+    self.detailPanelContainer:setVisible(false)
+    self.personalPanelContainer:setVisible(false)
+    if self.columnSeparator then self.columnSeparator:setVisible(false) end
+    self.noSelectedText:setVisible(not hasItem)
+
+    if hasItem then
+        self.leftListTable:setSelectedIndex(1, true)
+        self:onLeftListSelectionChanged(1)
+    end
+
     self:updateMenuButtons()
 end
 
 function MenuEmployeeManager:onLeftListSelectionChanged(index)
     if index == nil or index < 1 then
         self.noSelectedText:setVisible(true)
-        self.employeeInfoContainer:setVisible(false)
-        self.workflowContainer:setVisible(false)
+        self.detailPanelContainer:setVisible(false)
+        self.personalPanelContainer:setVisible(false)
+        if self.columnSeparator then self.columnSeparator:setVisible(false) end
         return
     end
 
@@ -191,12 +149,7 @@ function MenuEmployeeManager:onLeftListSelectionChanged(index)
     if item == nil then return end
 
     self.noSelectedText:setVisible(false)
-
-    if self.currentMode == MenuEmployeeManager.MODE.EMPLOYEES then
-        self:displayEmployeeDetails(item)
-    else
-        self:displayWorkflowDetails(item)
-    end
+    self:displayEmployeeDetails(item)
 
     self:updateMenuButtons()
 end
@@ -212,75 +165,91 @@ function MenuEmployeeManager:getSelectedItem()
 end
 
 function MenuEmployeeManager:displayEmployeeDetails(employee)
-    self.employeeInfoContainer:setVisible(true)
-    self.workflowContainer:setVisible(false)
+    self.detailPanelContainer:setVisible(true)
+    self.personalPanelContainer:setVisible(true)
+    if self.columnSeparator then self.columnSeparator:setVisible(true) end
 
+    -- Avatar
+    if self.detailAvatar ~= nil then
+        self.detailAvatar:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
+    end
+
+    -- Identity
     self.employeeName:setText(employee.name)
     self.employeeId:setText(string.format("ID: %d", employee.id))
 
+    -- Trait (subtitle under name)
+    if self.employeeTrait ~= nil then
+        local traitName = employee.getTraitName and employee:getTraitName() or nil
+        self.employeeTrait:setText(traitName or g_i18n:getText("em_none"))
+    end
+
+    -- Status
     local statusKey = employee.isHired and "em_status_hired" or "em_status_available"
     self.employeeStatusValue:setText(g_i18n:getText(statusKey))
 
-    if self.txtAssignedField then
-        if employee.targetFieldId then
-            self.txtAssignedField:setText(string.format("Field %d", employee.targetFieldId))
-        else
-            self.txtAssignedField:setText(g_i18n:getText("em_none"))
-        end
-    end
-
+    -- Skills with progress bars
     self:displaySkills(employee)
 
-    self:displayWorkStats(employee)
-
-    if self.txtWorkflowSummary then
-        local queue = employee.taskQueue or {}
-        if #queue > 0 then
-            local parts = {}
-            for i, taskName in ipairs(queue) do
-                table.insert(parts, string.format("%d. %s", i, taskName))
-            end
-            self.txtWorkflowSummary:setText(table.concat(parts, " > "))
-        else
-            self.txtWorkflowSummary:setText(g_i18n:getText("em_none"))
-        end
+    -- Work stats (conditionally visible)
+    local isHired = employee.isHired
+    if self.workStatsSection then
+        self.workStatsSection:setVisible(isHired)
+    end
+    if isHired then
+        self:displayWorkStats(employee)
     end
 
+    -- Traits list
+    if self.txtTraitsList then
+        local traitName = employee.getTraitName and employee:getTraitName() or nil
+        self.txtTraitsList:setText(traitName or g_i18n:getText("em_none"))
+    end
+
+    -- Wage
     local wage = employee.getDailyWage and employee:getDailyWage() or 0
     self.employeeWageValue:setText(g_i18n:formatMoney(wage, 0, true, false))
+
+    -- Personal info (right column)
+    self:displayPersonalInfo(employee)
+end
+
+function MenuEmployeeManager:setStatusBarValue(barElement, value)
+    if barElement == nil or barElement.parent == nil then return end
+    local fullWidth = barElement.parent.absSize[1] - (barElement.margin[1] or 0) * 2
+    local minSize = 0
+    if barElement.startSize ~= nil then
+        minSize = barElement.startSize[1] + barElement.endSize[1]
+    end
+    local clampedValue = math.max(0, math.min(1, value))
+    barElement:setSize(math.max(minSize, fullWidth * clampedValue), nil)
 end
 
 function MenuEmployeeManager:displaySkills(employee)
     local skills = employee.skills or { driving = 1, harvesting = 1, technical = 1 }
-    local skillXP = employee.skillXP or { driving = 0, harvesting = 0, technical = 0 }
     local maxLevel = SkillSystem.MAX_LEVEL
 
     local skillDefs = {
-        { key = "driving",    starsId = "skillDrivingStars",    xpId = "skillDrivingXP" },
-        { key = "harvesting", starsId = "skillHarvestingStars", xpId = "skillHarvestingXP" },
-        { key = "technical",  starsId = "skillTechnicalStars",  xpId = "skillTechnicalXP" },
+        { key = "driving",    barId = "barSkillDriving",    levelId = "txtSkillDrivingLevel" },
+        { key = "harvesting", barId = "barSkillHarvesting", levelId = "txtSkillHarvestingLevel" },
+        { key = "technical",  barId = "barSkillTechnical",  levelId = "txtSkillTechnicalLevel" },
     }
 
     for _, def in ipairs(skillDefs) do
         local level = math.min(maxLevel, math.max(1, skills[def.key] or 1))
-        local xp = skillXP[def.key] or 0
-        local xpNeeded = SkillSystem.getXPNeeded(level)
+        local ratio = level / maxLevel
 
-        local filled = math.min(level, maxLevel)
-        local bar = string.rep("#", filled) .. string.rep("-", maxLevel - filled)
-        local starsText = string.format("[%s] %d/%d", bar, level, maxLevel)
-
-        local starsElement = self[def.starsId]
-        if starsElement then
-            starsElement:setText(starsText)
+        local barElement = self[def.barId]
+        if barElement then
+            self:setStatusBarValue(barElement, ratio)
         end
 
-        local xpElement = self[def.xpId]
-        if xpElement then
+        local levelElement = self[def.levelId]
+        if levelElement then
             if level >= maxLevel then
-                xpElement:setText("MAX")
+                levelElement:setText("MAX")
             else
-                xpElement:setText(string.format("XP: %d/%d", math.floor(xp), xpNeeded))
+                levelElement:setText(string.format("%d/%d", level, maxLevel))
             end
         end
     end
@@ -305,90 +274,62 @@ function MenuEmployeeManager:displayWorkStats(employee)
             self.statCurrentJob:setText(g_i18n:getText("em_idle") or "Idle")
         end
     end
-end
 
-function MenuEmployeeManager:displayWorkflowDetails(fieldItem)
-    self.employeeInfoContainer:setVisible(false)
-    self.workflowContainer:setVisible(true)
-
-    self.selectedFieldId = fieldItem.id
-
-    if self.cropSelector and #self.cropSelector.texts == 0 and g_employeeManager.cropManager then
-        local cropNames = {}
-        for name, _ in pairs(g_employeeManager.cropManager.crops) do
-            table.insert(cropNames, name)
-        end
-        table.sort(cropNames)
-        self.cropSelector:setTexts(cropNames)
-    end
-
-    self:updateWorkflowSteps()
-end
-
-function MenuEmployeeManager:onCropChanged()
-    if self.cropSelector then
-        local state    = self.cropSelector:getState()
-        local cropName = self.cropSelector.texts[state]
-        self.selectedCrop = cropName
-        self:updateWorkflowSteps()
-    end
-end
-
-function MenuEmployeeManager:updateWorkflowSteps()
-    if not self.cropSelector then return end
-    local state    = self.cropSelector:getState()
-    local cropName = self.cropSelector.texts and self.cropSelector.texts[state]
-    self.selectedCrop = cropName
-    if not cropName then return end
-
-    local cropData = g_employeeManager.cropManager.crops[cropName]
-    if cropData then
-        self.workflowRenderer:setSteps(cropData.steps, {})
-        self.workflowTable:reloadData()
-    end
-end
-
-function MenuEmployeeManager:onStartWorkflow()
-    if not self.selectedFieldId or not self.selectedCrop then return end
-
-    local fieldId    = self.selectedFieldId
-    local cropName   = self.selectedCrop
-    local assignments = self.workflowRenderer.assignments
-
-    g_employeeManager:setFieldConfig(fieldId, cropName, assignments)
-
-    local field = g_fieldManager:getFieldById(fieldId)
-    if not field then return end
-
-    local nextStep, reason = g_employeeManager.cropManager:getNextStep(field, cropName)
-
-    if nextStep == nil or nextStep == "WAIT" then
-        InfoDialog.show(string.format("Workflow configured for Field %d.\nStatus: %s",
-            fieldId, reason or "Waiting"))
-        return
-    end
-
-    local assignedEmployee = g_employeeManager:getAssignedEmployeeForStep(fieldId, nextStep)
-    if not assignedEmployee then
-        for _, emp in ipairs(g_employeeManager:getHiredEmployees()) do
-            if emp.currentJob == nil then
-                assignedEmployee = emp
-                break
-            end
-        end
-    end
-
-    if assignedEmployee then
-        g_employeeManager:consoleSetTargetCrop(assignedEmployee.id, fieldId, cropName)
-        if g_employeeManager.jobManager:startFieldWork(assignedEmployee, fieldId, nextStep) then
-            InfoDialog.show(string.format("Workflow STARTED!\nField: %d (%s)\nTask: %s\nEmployee: %s",
-                fieldId, cropName, nextStep, assignedEmployee.name))
+    -- Assigned field
+    if self.txtAssignedField then
+        if employee.targetFieldId then
+            self.txtAssignedField:setText(string.format("Field %d", employee.targetFieldId))
         else
-            InfoDialog.show(string.format("Failed to start workflow for %s (check vehicle/equipment)",
-                assignedEmployee.name))
+            self.txtAssignedField:setText(g_i18n:getText("em_none"))
         end
-    else
-        InfoDialog.show("Workflow configured, but no employee available for task: " .. nextStep)
+    end
+
+    -- Fatigue
+    if self.statFatigue then
+        local fatigue = employee.fatigueLevel or 0
+        if employee.isOnBreak then
+            self.statFatigue:setText(g_i18n:getText("em_status_on_break"))
+        elseif fatigue >= 80 then
+            self.statFatigue:setText(string.format("%.0f%% - %s", fatigue, g_i18n:getText("em_status_exhausted")))
+        elseif fatigue >= 50 then
+            self.statFatigue:setText(string.format("%.0f%% - %s", fatigue, g_i18n:getText("em_status_tired")))
+        else
+            self.statFatigue:setText(string.format("%.0f%%", fatigue))
+        end
+    end
+end
+
+function MenuEmployeeManager:displayPersonalInfo(employee)
+    -- Age
+    if self.txtPersonalAge then
+        local age = employee.age or 30
+        self.txtPersonalAge:setText(tostring(age))
+    end
+
+    -- Nationality
+    if self.txtPersonalNationality then
+        local natKey = "em_nationality_" .. (employee.nationality or "FR")
+        local natText = g_i18n:getText(natKey)
+        if natText == natKey then
+            natText = employee.nationality or "FR"
+        end
+        self.txtPersonalNationality:setText(natText)
+    end
+
+    -- Biography
+    if self.txtPersonalBio then
+        local bioKey = employee.bioKey or "em_bio_default"
+        local bioText = g_i18n:getText(bioKey)
+        if bioText == bioKey then bioText = g_i18n:getText("em_bio_default") end
+        self.txtPersonalBio:setText(bioText)
+    end
+
+    -- Quote
+    if self.txtPersonalQuote then
+        local quoteKey = employee.quoteKey or "em_quote_default"
+        local quoteText = g_i18n:getText(quoteKey)
+        if quoteText == quoteKey then quoteText = g_i18n:getText("em_quote_default") end
+        self.txtPersonalQuote:setText("\"" .. quoteText .. "\"")
     end
 end
 
@@ -465,7 +406,7 @@ function MenuEmployeeManager:onMoneyChange()
 
     local isNegative = farm.money <= -1
     local profileName = "fs25_shopMoney"
-    
+
     if ShopMenu and ShopMenu.GUI_PROFILE then
         profileName = isNegative
             and ShopMenu.GUI_PROFILE.SHOP_MONEY_NEGATIVE

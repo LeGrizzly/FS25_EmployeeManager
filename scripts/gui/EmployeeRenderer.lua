@@ -50,19 +50,41 @@ function EmployeeRenderer:populateCellForItemInSection(list, section, index, cel
     local item = self.data[selection][index]
     if item == nil then return end
 
+    local avatarEl = cell:getAttribute("avatar")
+    local iconEl = cell:getAttribute("icon")
+
     if item.skills ~= nil then
-        cell:getAttribute("icon"):setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_character")
+        -- Employee item: show avatar, hide atlas icon
+        if avatarEl ~= nil then
+            avatarEl:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
+            avatarEl:setVisible(true)
+        end
+        if iconEl ~= nil then
+            iconEl:setVisible(false)
+        end
+
         cell:getAttribute("title"):setText(item.name)
 
-        local wage = item.getDailyWage and item:getDailyWage() or 0
-        cell:getAttribute("subtitle"):setText(g_i18n:formatMoney(wage, 0, true, true))
+        local hourlyWage = item.getHourlyWage and item:getHourlyWage() or 0
+        local wageText = g_i18n:formatMoney(hourlyWage, 0, true, true) .. " /h"
+        cell:getAttribute("subtitle"):setText(wageText)
 
     elseif item.area ~= nil then
-        cell:getAttribute("icon"):setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_map")
+        -- Field item: hide avatar, show atlas icon
+        if avatarEl ~= nil then
+            avatarEl:setVisible(false)
+        end
+        if iconEl ~= nil then
+            iconEl:setVisible(true)
+            iconEl:setImageSlice(g_gui.sharedGuiAtlas, "ingameMenu/tab_map")
+        end
+
         cell:getAttribute("title"):setText(item.name)
         cell:getAttribute("subtitle"):setText(string.format("%.2f ha", item.area))
 
     else
+        if avatarEl ~= nil then avatarEl:setVisible(false) end
+        if iconEl ~= nil then iconEl:setVisible(true) end
         cell:getAttribute("title"):setText("?")
         cell:getAttribute("subtitle"):setText("")
     end

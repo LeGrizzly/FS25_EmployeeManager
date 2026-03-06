@@ -38,6 +38,14 @@ function Employee.new(id, name, skills)
     self.lastVehicleX = nil
     self.lastVehicleZ = nil
 
+    self.age = 30
+    self.nationality = "FR"
+    self.gender = "male"
+    self.bioKey = nil
+    self.personalityKey = nil
+    self.experienceKey = nil
+    self.quoteKey = nil
+
     self.dailyHoursWorked = 0
     self.fatigueLevel = 0
     self.isOnBreak = false
@@ -200,6 +208,13 @@ function Employee:toTable()
         dailyHoursWorked = self.dailyHoursWorked,
         fatigueLevel = self.fatigueLevel,
         isOnBreak = self.isOnBreak,
+        age = self.age,
+        nationality = self.nationality,
+        gender = self.gender,
+        bioKey = self.bioKey,
+        personalityKey = self.personalityKey,
+        experienceKey = self.experienceKey,
+        quoteKey = self.quoteKey,
     }
 end
 
@@ -230,6 +245,13 @@ function Employee.fromTable(data)
     e.dailyHoursWorked = data.dailyHoursWorked or 0
     e.fatigueLevel = data.fatigueLevel or 0
     e.isOnBreak = data.isOnBreak or false
+    e.age = data.age or 30
+    e.nationality = data.nationality or "FR"
+    e.gender = data.gender or "male"
+    e.bioKey = data.bioKey
+    e.personalityKey = data.personalityKey
+    e.experienceKey = data.experienceKey
+    e.quoteKey = data.quoteKey
     return e
 end
 
@@ -246,7 +268,7 @@ function Employee:writeStream(streamId, connection)
     streamWriteInt32(streamId, self.shiftStart or 6)
     streamWriteInt32(streamId, self.shiftEnd or 18)
 
-    streamWriteInt8(streamId, 2)
+    streamWriteInt8(streamId, 3)
     local traitsStr = TraitSystem.serialize(self.traits)
     streamWriteString(streamId, traitsStr)
 
@@ -267,6 +289,15 @@ function Employee:writeStream(streamId, connection)
     streamWriteBool(streamId, self.isOnBreak or false)
 
     streamWriteFloat32(streamId, self.milestoneWageMult or 1.0)
+
+    -- v3: personal info
+    streamWriteInt8(streamId, self.age or 30)
+    streamWriteString(streamId, self.nationality or "FR")
+    streamWriteString(streamId, self.gender or "male")
+    streamWriteString(streamId, self.bioKey or "")
+    streamWriteString(streamId, self.personalityKey or "")
+    streamWriteString(streamId, self.experienceKey or "")
+    streamWriteString(streamId, self.quoteKey or "")
 end
 
 function Employee:readStream(streamId, connection)
@@ -316,6 +347,24 @@ function Employee:readStream(streamId, connection)
         self.milestoneWageMult = streamReadFloat32(streamId)
     else
         self.milestoneWageMult = 1.0
+    end
+
+    if streamVersion >= 3 then
+        self.age = streamReadInt8(streamId)
+        self.nationality = streamReadString(streamId)
+        self.gender = streamReadString(streamId)
+        local bioKey = streamReadString(streamId)
+        self.bioKey = (bioKey ~= "") and bioKey or nil
+        local personalityKey = streamReadString(streamId)
+        self.personalityKey = (personalityKey ~= "") and personalityKey or nil
+        local experienceKey = streamReadString(streamId)
+        self.experienceKey = (experienceKey ~= "") and experienceKey or nil
+        local quoteKey = streamReadString(streamId)
+        self.quoteKey = (quoteKey ~= "") and quoteKey or nil
+    else
+        self.age = 30
+        self.nationality = "FR"
+        self.gender = "male"
     end
 end
 
