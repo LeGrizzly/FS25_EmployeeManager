@@ -4,6 +4,30 @@
     <!-- Employee Manager: Contracts-style page profiles               -->
     <!-- ============================================================ -->
 
+    <!-- ============================================================ -->
+    <!-- Employee Manager: Icons                                       -->
+    <!-- ============================================================ -->
+
+    <Profile name="EM_IconMenu" extends="fs25_menuHeaderIconBg">
+        <imageFilename value="images/MenuIcon.dds" />
+    </Profile>
+
+    <Profile name="EM_IconEmployee" extends="fs25_menuHeaderIconBg">
+        <imageFilename value="images/EMEmployeeIcon.dds" />
+    </Profile>
+
+    <Profile name="EM_IconWorkflow" extends="fs25_menuHeaderIconBg">
+        <imageFilename value="images/EMWorkflowIcon.dds" />
+    </Profile>
+
+    <Profile name="EM_IconField" extends="fs25_menuHeaderIconBg">
+        <imageFilename value="images/EMFieldIcon.dds" />
+    </Profile>
+
+    <Profile name="EM_IconVehicle" extends="fs25_menuHeaderIconBg">
+        <imageFilename value="images/EMVehicleIcon.dds" />
+    </Profile>
+
     <!-- Filter switcher (NEW / ACTIVE / OWNED tabs) -->
     <Profile name="EM_FilterSwitcher" extends="fs25_subCategorySelector" with="anchorTopLeft"/>
 
