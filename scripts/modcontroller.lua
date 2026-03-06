@@ -29,6 +29,12 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
 
     g_employeeManager = EmployeeManager:new(g_currentMission)
     g_parkingManager = ParkingManager:new()
+
+    g_persistenceManager = PersistenceManager:new()
+    g_persistenceManager:addStrategy(DBAPIPersistence:new())
+    g_persistenceManager:addStrategy(XMLPersistence:new())
+    g_persistenceManager:selectStrategy()
+
     g_employeeManager:loadEmployeeTemplates(self.path)
 
     if SimpleStatusHUD then
@@ -47,17 +53,23 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
     g_employeeManager:onMissionInitialize(self.path)
     g_employeeManager:subscribeEvents()
 
-    FSBaseMission.saveSavegame = Utils.appendedFunction(FSBaseMission.saveSavegame, function()
+    FSBaseMission.saveSavegame = Utils.prependedFunction(FSBaseMission.saveSavegame, function()
         ModController:saveEmployees()
     end)
 
+    self.dataLoaded = false
+    self.deferredLoadAttempted = false
+
     if savegame ~= nil then
-        self:loadEmployees(savegame.savegameDirectory)
+        self.dataLoaded = self:loadEmployees(savegame.savegameDirectory)
     end
 
-    if #g_employeeManager.employees == 0 then
-        CustomUtils:info("[ModController] No employees found, generating initial pool...")
-        g_employeeManager:generateInitialPool(10)
+    if self.dataLoaded then
+        if #g_employeeManager.employees == 0 then
+            g_employeeManager:generateInitialPool(10)
+        end
+    else
+        CustomUtils:info("[ModController] Load deferred — DBAPI may not be ready yet")
     end
 
     if rawget(_G, 'g_modGui') ~= nil then
@@ -73,66 +85,15 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
 end
 
 function ModController:saveEmployees()
-    if g_employeeManager == nil then return end
-
-    local dir = g_currentMission.missionInfo.savegameDirectory
-    if dir == nil then
-        CustomUtils:warning("[ModController] No savegame directory, cannot save employees")
-        return
-    end
-
-    local xmlPath = dir .. "/employeeManager.xml"
-    local xmlFile = createXMLFile("employeeManagerXML", xmlPath, "employeeManager")
-    if xmlFile == nil or xmlFile == 0 then
-        CustomUtils:error("[ModController] Failed to create save file: %s", xmlPath)
-        return
-    end
-
-    g_employeeManager:saveToXMLFile(xmlFile, "employeeManager")
-    saveXMLFile(xmlFile)
-    delete(xmlFile)
-
-    local hiredCount = 0
-    for _, e in ipairs(g_employeeManager.employees) do
-        if e.isHired then hiredCount = hiredCount + 1 end
-    end
-    CustomUtils:info("[ModController] Saved %d employees (%d hired) to %s", #g_employeeManager.employees, hiredCount, xmlPath)
+    if g_persistenceManager == nil or g_employeeManager == nil then return end
+    g_persistenceManager:save(g_employeeManager, g_parkingManager)
 end
 
 function ModController:loadEmployees(savegameDir)
-    if g_employeeManager == nil then
-        CustomUtils:warning("[ModController] loadEmployees: g_employeeManager is nil, skipping")
-        return
+    if g_persistenceManager == nil or g_employeeManager == nil then
+        return false
     end
-
-    local dir = savegameDir or (g_currentMission.missionInfo and g_currentMission.missionInfo.savegameDirectory)
-    if dir == nil then
-        CustomUtils:warning("[ModController] No savegame directory available for loading (savegameDir=%s, missionInfo=%s)",
-            tostring(savegameDir), tostring(g_currentMission.missionInfo))
-        return
-    end
-
-    local xmlPath = dir .. "/employeeManager.xml"
-    if not fileExists(xmlPath) then
-        CustomUtils:info("[ModController] No save file found at %s (first load or new game)", xmlPath)
-        return
-    end
-
-    CustomUtils:info("[ModController] Loading employees from: %s", xmlPath)
-    local xmlFile = loadXMLFile("employeeManagerXML", xmlPath)
-    if xmlFile == nil or xmlFile == 0 then
-        CustomUtils:error("[ModController] Failed to load save file: %s", xmlPath)
-        return
-    end
-
-    g_employeeManager:loadFromXMLFile(xmlFile, "employeeManager")
-    delete(xmlFile)
-
-    local hiredCount = 0
-    for _, e in ipairs(g_employeeManager.employees) do
-        if e.isHired then hiredCount = hiredCount + 1 end
-    end
-    CustomUtils:info("[ModController] Loaded %d employees (%d hired) from %s", #g_employeeManager.employees, hiredCount, xmlPath)
+    return g_persistenceManager:load(g_employeeManager, g_parkingManager)
 end
 
 function ModController:deleteMap()
@@ -146,9 +107,20 @@ function ModController:deleteMap()
         g_employeeManager = nil
     end
     g_parkingManager = nil
+    g_persistenceManager = nil
 end
 
 function ModController:update(dt)
+    if not self.deferredLoadAttempted and not self.dataLoaded then
+        self.deferredLoadAttempted = true
+        g_persistenceManager:selectStrategy()
+        self.dataLoaded = g_persistenceManager:load(g_employeeManager, g_parkingManager)
+        if not self.dataLoaded or #g_employeeManager.employees == 0 then
+            CustomUtils:info("[ModController] Deferred load: no data, generating pool")
+            g_employeeManager:generateInitialPool(10)
+        end
+    end
+
     if g_employeeManager and g_employeeManager.update then
         g_employeeManager:update(dt)
     end
