@@ -8,7 +8,7 @@
         -->
         <!-- position="0px 50px" width="800px" -->
         <GuiElement profile="fs25_menuHeaderPanel" position="-50px 90px" width="800px">
-            <Bitmap profile="fs25_menuHeaderIconBg"/>
+            <Bitmap profile="EM_IconMenu"/>
             <Text profile="fs25_menuHeaderTitle" id="categoryHeaderText"/>
 
             <RoundCorner profile="fs25_shopMoneyBoxBg" id="shopMoneyBoxBg" position="380px 0px"/>
