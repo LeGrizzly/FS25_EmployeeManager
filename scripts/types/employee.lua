@@ -192,9 +192,16 @@ function Employee:toTable()
         id = self.id,
         name = self.name,
         skills = self.skills,
+        skillXP = self.skillXP,
+        isHired = self.isHired,
         assignedVehicleId = self.assignedVehicleId,
         currentJob = self.currentJob,
         isRenting = self.isRenting,
+        workTime = self.workTime,
+        kmDriven = self.kmDriven,
+        targetCrop = self.targetCrop,
+        targetFieldId = self.targetFieldId,
+        isAutonomous = self.isAutonomous,
         taskQueue = self.taskQueue,
         shiftStart = self.shiftStart,
         shiftEnd = self.shiftEnd,
@@ -223,6 +230,15 @@ function Employee.fromTable(data)
         return nil
     end
     local e = Employee.new(data.id, data.name, data.skills)
+    if data.skillXP and type(data.skillXP) == "table" then
+        e.skillXP = { driving = data.skillXP.driving or 0, harvesting = data.skillXP.harvesting or 0, technical = data.skillXP.technical or 0 }
+    end
+    e.isHired = data.isHired or false
+    e.workTime = data.workTime or 0
+    e.kmDriven = data.kmDriven or 0
+    e.targetCrop = data.targetCrop
+    e.targetFieldId = data.targetFieldId
+    e.isAutonomous = data.isAutonomous or false
     e.currentJob = data.currentJob
     e.isRenting = data.isRenting
     e.assignedVehicleId = data.assignedVehicleId
