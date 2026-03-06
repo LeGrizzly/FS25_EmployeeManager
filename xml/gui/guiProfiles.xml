@@ -116,10 +116,10 @@
     </Profile>
 
     <Profile name="EM_SkillXP" extends="fs25_textDefault" with="anchorTopLeft">
-        <textSize value="14px"/>
+        <textSize value="18px"/>
         <textColor value="1 1 1 0.5"/>
         <textAlignment value="left"/>
-        <width value="180px"/>
+        <width value="900px"/>
     </Profile>
 
     <!-- Footer (wage) -->
