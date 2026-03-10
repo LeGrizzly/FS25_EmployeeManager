@@ -71,11 +71,17 @@
         <text name="em_error_no_hired" text="Brak zatrudnionych pracowników. Zatrudnij kogoś najpierw!" />
         <text name="em_workflow_started" text="%s rozpoczął pracę na polu %d: %s" />
         <text name="em_workflow_start_failed" text="Nie udało się rozpocząć pracy dla %s (sprawdź pojazd/sprzęt)." />
+        <text name="em_error_equipment_failed" text="%s: Sprawdzenie sprzętu nie powiodło się dla %s. Odłącz niekompatybilne narzędzia lub sprawdź dostępność." />
         <text name="em_workflow_saved" text="Przepływ pracy zapisany dla %s." />
+        <text name="em_workflow_scheduled" text="%s zaplanowany do rozpoczecia o %02d:00." />
+        <text name="em_workflow_saved_hint" text="Przepływ pracy zapisany dla %s. Rozpocznie sie automatycznie na poczatku zmiany." />
         <text name="em_shift_label" text="Zmiana" />
         <text name="em_shift_to" text="do" />
         <text name="em_btn_save_start" text="Zapisz i Rozpocznij" />
         <text name="em_btn_save" text="Zapisz" />
+        <text name="em_btn_stop" text="Zatrzymaj" />
+        <text name="em_workflow_stopped" text="%s zatrzymany. Nie rozpocznie sie automatycznie." />
+        <text name="em_workflow_queue_complete" text="Wszystkie zadania ukończone dla %s. Przepływ wstrzymany." />
         <text name="em_btn_workflow_editor" text="Edytor Przepływu" />
 
         <text name="em_tab_employees" text="Pracownicy" />
@@ -152,6 +158,9 @@
         <text name="em_stat_parking" text="Miejsce parkingowe" />
         <text name="em_no_parking" text="Nieprzypisane" />
         <text name="em_status_returning" text="Powrót na parking" />
+        <text name="em_status_driving_to_tool" text="Jazda do narzędzia" />
+        <text name="em_status_attaching_tool" text="Podłączanie narzędzia" />
+        <text name="em_status_returning_tool" text="Zwrot narzędzia" />
 
         <text name="em_milestone_apprentice" text="Uczeń" />
         <text name="em_milestone_companion" text="Czeladnik" />
