@@ -7,7 +7,32 @@ MessageType.EMPLOYEE_ADDED = nextMessageTypeId()
 MessageType.EMPLOYEE_REMOVED = nextMessageTypeId()
 MessageType.EMPLOYEE_SKILL_LEVELUP = nextMessageTypeId()
 
+g_EMIconMenu     = Utils.getFilename("images/MenuIcon.dds", g_modDirectory)
+g_EMIconEmployee = Utils.getFilename("images/EMEmployeeIcon.dds", g_modDirectory)
+g_EMIconWorkflow = Utils.getFilename("images/EMWorkflowIcon.dds", g_modDirectory)
+g_EMIconField    = Utils.getFilename("images/EMFieldIcon.dds", g_modDirectory)
+g_EMIconVehicle  = Utils.getFilename("images/EMVehicleIcon.dds", g_modDirectory)
+
+local EM_ICON_GLOBALS = {
+    g_EMIconMenu     = true,
+    g_EMIconEmployee = true,
+    g_EMIconWorkflow = true,
+    g_EMIconField    = true,
+    g_EMIconVehicle  = true,
+}
+
+local function emResolveFilename(self, superFunc)
+    local filename = superFunc(self)
+    if EM_ICON_GLOBALS[filename] then
+        return _G[filename]
+    end
+    return filename
+end
+
+GuiOverlay.resolveFilename = Utils.overwrittenFunction(GuiOverlay.resolveFilename, emResolveFilename)
+
 source(g_modDirectory .. "scripts/utils/Utils.lua")
+
 source(g_modDirectory .. "scripts/types/traitsystem.lua")
 source(g_modDirectory .. "scripts/types/skillsystem.lua")
 source(g_modDirectory .. "scripts/types/skilleffects.lua")

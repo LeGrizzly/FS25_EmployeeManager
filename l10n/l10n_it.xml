@@ -74,11 +74,17 @@
 		<text name="em_error_no_hired" text="Nessun dipendente assunto. Assumi qualcuno prima!" />
 		<text name="em_workflow_started" text="%s ha avviato il flusso sul campo %d: %s" />
 		<text name="em_workflow_start_failed" text="Avvio flusso fallito per %s (controlla veicolo/attrezzatura)." />
+		<text name="em_error_equipment_failed" text="%s: Controllo attrezzatura fallito per %s. Stacca attrezzi incompatibili o controlla disponibilità." />
 		<text name="em_workflow_saved" text="Flusso salvato per %s." />
+		<text name="em_workflow_scheduled" text="%s programmato per avvio alle %02d:00." />
+		<text name="em_workflow_saved_hint" text="Flusso salvato per %s. Si avviera automaticamente all'inizio del turno." />
 		<text name="em_shift_label" text="Orario" />
 		<text name="em_shift_to" text="a" />
 		<text name="em_btn_save_start" text="Salva e Avvia" />
 		<text name="em_btn_save" text="Salva" />
+		<text name="em_btn_stop" text="Ferma" />
+		<text name="em_workflow_stopped" text="%s fermato. Non si avviera automaticamente." />
+		<text name="em_workflow_queue_complete" text="Tutti i compiti completati per %s. Flusso in pausa." />
 		<text name="em_btn_workflow_editor" text="Editor Flussi" />
 
 		<text name="em_tab_employees" text="Dipendenti" />
@@ -155,6 +161,9 @@
 		<text name="em_stat_parking" text="Posto parcheggio" />
 		<text name="em_no_parking" text="Non assegnato" />
 		<text name="em_status_returning" text="Ritorno al parcheggio" />
+		<text name="em_status_driving_to_tool" text="In viaggio verso l'attrezzo" />
+		<text name="em_status_attaching_tool" text="Aggancio attrezzo" />
+		<text name="em_status_returning_tool" text="Restituzione attrezzo" />
 
 		<text name="em_milestone_apprentice" text="Apprendista" />
 		<text name="em_milestone_companion" text="Compagnon" />

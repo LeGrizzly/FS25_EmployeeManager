@@ -155,8 +155,20 @@ function ModGui:loadMenuFrame(class)
 
     g_gui:loadGui(class.XML_FILENAME, class.CLASS_NAME, pageController, true)
 
-    local iconPath = 'images/MenuIcon.dds'
+    local iconSliceToFile = {
+        EM_IconMenu     = "images/MenuIcon.dds",
+        EM_IconEmployee = "images/EMEmployeeIcon.dds",
+        EM_IconWorkflow = "images/EMWorkflowIcon.dds",
+        EM_IconField    = "images/EMFieldIcon.dds",
+        EM_IconVehicle  = "images/EMVehicleIcon.dds",
+    }
+
+    local iconPath = "images/MenuIcon.dds"
     local uvs = {0, 0, 1024, 1024}
+
+    if class.MENU_ICON_SLICE_ID ~= nil and iconSliceToFile[class.MENU_ICON_SLICE_ID] ~= nil then
+        iconPath = iconSliceToFile[class.MENU_ICON_SLICE_ID]
+    end
 
     local position = "pageSettings"
     local predicate = function() return true end

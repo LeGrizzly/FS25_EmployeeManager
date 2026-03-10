@@ -7,6 +7,8 @@ EMEmployeeFrame.LIST_TYPE = {
     HIRED     = 2,
 }
 
+EMEmployeeFrame.MENU_ICON_SLICE_ID = 'EM_IconEmployee'
+
 function EMEmployeeFrame:new()
     local self = TabbedMenuFrameElement.new(nil, EMEmployeeFrame_mt)
     self.employees       = {}
@@ -120,8 +122,15 @@ function EMEmployeeFrame:populateCellForItemInSection(list, section, index, cell
             elseif emp.isOnBreak then
                 statusText = g_i18n:getText("em_status_on_break")
             elseif emp.currentJob then
-                if emp.currentJob.type == "RETURN_TO_PARKING" then
+                local jobType = emp.currentJob.type
+                if jobType == "RETURN_TO_PARKING" then
                     statusText = g_i18n:getText("em_status_returning")
+                elseif jobType == "DRIVING_TO_TOOL" then
+                    statusText = g_i18n:getText("em_status_driving_to_tool")
+                elseif jobType == "APPROACHING_TOOL" or jobType == "ATTACHING_TOOL" then
+                    statusText = g_i18n:getText("em_status_attaching_tool")
+                elseif jobType == "RETURNING_TOOL" then
+                    statusText = g_i18n:getText("em_status_returning_tool")
                 else
                     statusText = emp.currentJob.workType or "Working"
                 end
@@ -165,7 +174,6 @@ function EMEmployeeFrame:rebuildTable()
         self.noEmployeesContainer:setVisible(not hasItems)
     end
 
-    -- Hide detail panels when rebuilding
     if self.detailPanel then self.detailPanel:setVisible(false) end
     if self.rightPanel then self.rightPanel:setVisible(false) end
     if self.columnSeparator then self.columnSeparator:setVisible(false) end
@@ -209,37 +217,30 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
         return
     end
 
-    -- Show detail panels
     if self.detailPanel then self.detailPanel:setVisible(true) end
     if self.rightPanel then self.rightPanel:setVisible(true) end
     if self.columnSeparator then self.columnSeparator:setVisible(true) end
     if self.noSelectedText then self.noSelectedText:setVisible(false) end
 
-    -- Portrait
     if self.detailAvatar then
         self.detailAvatar:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
     end
 
-    -- Identity
     if self.txtName then self.txtName:setText(emp.name) end
     if self.txtId then self.txtId:setText(string.format("ID: %d", emp.id)) end
 
-    -- Status
     if self.txtStatus then
         local statusKey = emp.isHired and "em_status_hired" or "em_status_available"
         self.txtStatus:setText(g_i18n:getText(statusKey))
     end
 
-    -- Skills with progress bars
     self:displaySkills(emp)
 
-    -- Traits
     if self.txtTraitsList then
         local traitName = emp.getTraitName and emp:getTraitName() or nil
         self.txtTraitsList:setText(traitName or g_i18n:getText("em_none"))
     end
 
-    -- Wage
     if self.txtWage then
         local hourly = emp.getHourlyWage and emp:getHourlyWage() or 0
         local marketMult = 1.0
@@ -269,7 +270,6 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
         self.txtWageBreakdown:setText(parts)
     end
 
-    -- Toggle Column 3 content based on hired/available
     local isHired = emp.isHired
     if self.hiredInfoSection then self.hiredInfoSection:setVisible(isHired) end
     if self.availableInfoSection then self.availableInfoSection:setVisible(not isHired) end
@@ -278,7 +278,6 @@ function EMEmployeeFrame:displayEmployeeDetails(index)
         self:displayWorkStats(emp)
         self:displayPerformanceStats(emp)
 
-        -- Workflow summary
         if self.txtWorkflowSummary then
             local queue = emp.taskQueue or {}
             if #queue > 0 then
@@ -327,13 +326,11 @@ function EMEmployeeFrame:displaySkills(employee)
 end
 
 function EMEmployeeFrame:displayPersonalInfo(employee)
-    -- Age
     if self.txtPersonalAge then
         local age = employee.age or 30
         self.txtPersonalAge:setText(tostring(age))
     end
 
-    -- Nationality
     if self.txtPersonalNationality then
         local natKey = "em_nationality_" .. (employee.nationality or "FR")
         local natText = g_i18n:getText(natKey)
@@ -343,7 +340,6 @@ function EMEmployeeFrame:displayPersonalInfo(employee)
         self.txtPersonalNationality:setText(natText)
     end
 
-    -- Biography
     if self.txtPersonalBio then
         local bioKey = employee.bioKey or "em_bio_default"
         local bioText = g_i18n:getText(bioKey)
@@ -351,7 +347,6 @@ function EMEmployeeFrame:displayPersonalInfo(employee)
         self.txtPersonalBio:setText(bioText)
     end
 
-    -- Quote
     if self.txtPersonalQuote then
         local quoteKey = employee.quoteKey or "em_quote_default"
         local quoteText = g_i18n:getText(quoteKey)
@@ -373,8 +368,15 @@ function EMEmployeeFrame:displayWorkStats(employee)
     if self.statCurrentJob then
         if employee.currentJob then
             local jobType = employee.currentJob.workType or employee.currentJob.type or "Unknown"
-            if employee.currentJob.type == "RETURN_TO_PARKING" then
+            local jt = employee.currentJob.type
+            if jt == "RETURN_TO_PARKING" then
                 jobType = g_i18n:getText("em_status_returning")
+            elseif jt == "DRIVING_TO_TOOL" then
+                jobType = g_i18n:getText("em_status_driving_to_tool")
+            elseif jt == "APPROACHING_TOOL" or jt == "ATTACHING_TOOL" then
+                jobType = g_i18n:getText("em_status_attaching_tool")
+            elseif jt == "RETURNING_TOOL" then
+                jobType = g_i18n:getText("em_status_returning_tool")
             end
             local fieldId = employee.currentJob.fieldId
             if fieldId then

@@ -2,7 +2,9 @@
 <GUI name="EMVehicle">
     <GuiElement profile="uiInGameMenuFrame">
         <GuiElement profile="fs25_menuHeaderPanel">
-            <Bitmap profile="fs25_menuHeaderIconBg" />
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="EM_IconVehicle" />
+            </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_em_tab_vehicles" />
         </GuiElement>
 

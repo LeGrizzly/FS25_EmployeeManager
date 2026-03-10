@@ -71,11 +71,17 @@
         <text name="em_error_no_hired" text="Keine Mitarbeiter eingestellt. Stelle zuerst jemanden ein!" />
         <text name="em_workflow_started" text="%s hat Workflow auf Feld %d gestartet: %s" />
         <text name="em_workflow_start_failed" text="Workflow-Start für %s fehlgeschlagen (Fahrzeug/Gerät prüfen)." />
+        <text name="em_error_equipment_failed" text="%s: Ausrüstungsprüfung für %s fehlgeschlagen. Inkompatible Geräte abkoppeln oder Verfügbarkeit prüfen." />
         <text name="em_workflow_saved" text="Workflow für %s gespeichert." />
+        <text name="em_workflow_scheduled" text="%s geplant für Start um %02d:00 Uhr." />
+        <text name="em_workflow_saved_hint" text="Workflow für %s gespeichert. Startet automatisch bei Schichtbeginn." />
         <text name="em_shift_label" text="Schicht" />
         <text name="em_shift_to" text="bis" />
         <text name="em_btn_save_start" text="Speichern &amp; Starten" />
         <text name="em_btn_save" text="Speichern" />
+        <text name="em_btn_stop" text="Stopp" />
+        <text name="em_workflow_stopped" text="%s gestoppt. Kein automatischer Start." />
+        <text name="em_workflow_queue_complete" text="Alle Aufgaben für %s abgeschlossen. Workflow pausiert." />
         <text name="em_btn_workflow_editor" text="Workflow-Editor" />
 
         <text name="em_tab_employees" text="Mitarbeiter" />
@@ -152,6 +158,9 @@
         <text name="em_stat_parking" text="Parkplatz" />
         <text name="em_no_parking" text="Nicht zugewiesen" />
         <text name="em_status_returning" text="Rückkehr zum Parkplatz" />
+        <text name="em_status_driving_to_tool" text="Fahrt zum Werkzeug" />
+        <text name="em_status_attaching_tool" text="Werkzeug ankuppeln" />
+        <text name="em_status_returning_tool" text="Werkzeug zurückbringen" />
 
         <text name="em_milestone_apprentice" text="Lehrling" />
         <text name="em_milestone_companion" text="Geselle" />

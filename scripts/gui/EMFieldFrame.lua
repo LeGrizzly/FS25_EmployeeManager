@@ -9,6 +9,8 @@ function EMFieldFrame:new()
     return self
 end
 
+EMFieldFrame.MENU_ICON_SLICE_ID = 'EM_IconField'
+
 function EMFieldFrame:copyAttributes(src)
     EMFieldFrame:superClass().copyAttributes(self, src)
 end
@@ -16,6 +18,18 @@ end
 function EMFieldFrame:initialize()
     self.backButtonInfo = { inputAction = InputAction.MENU_BACK }
     self.menuButtonInfo = { self.backButtonInfo }
+
+    self.cropNames = {}
+    if g_employeeManager and g_employeeManager.cropManager then
+        for name, _ in pairs(g_employeeManager.cropManager.crops) do
+            table.insert(self.cropNames, name)
+        end
+        table.sort(self.cropNames)
+    end
+
+    if self.targetCropSelector then
+        self.targetCropSelector:setTexts(self.cropNames)
+    end
 end
 
 function EMFieldFrame:onGuiSetupFinished()
@@ -161,6 +175,20 @@ function EMFieldFrame:displayFieldDetails(index)
         self.txtGrowthState:setText(growthText)
     end
 
+    if self.targetCropSelector then
+        local targetCrop = g_employeeManager:getFieldTargetCrop(fieldData.fieldId)
+        local state = 1
+        if targetCrop then
+            for i, name in ipairs(self.cropNames) do
+                if name == targetCrop then
+                    state = i
+                    break
+                end
+            end
+        end
+        self.targetCropSelector:setState(state, false)
+    end
+
     local conditionText = self:getFieldCondition(fieldData.fieldRef)
     if self.txtFieldCondition then
         self.txtFieldCondition:setText(conditionText)
@@ -248,12 +276,10 @@ function EMFieldFrame:getAssignedEmployee(fieldId)
 end
 
 function EMFieldFrame:displayAssignedEmployee(emp)
-    -- Name
     if self.txtAssignedEmployee then
         self.txtAssignedEmployee:setText(emp.name or "???")
     end
 
-    -- Status
     if self.txtEmpStatus then
         local statusText
         if emp.isUnpaid then
@@ -263,8 +289,15 @@ function EMFieldFrame:displayAssignedEmployee(emp)
             statusText = g_i18n:getText("em_status_on_break")
             self.txtEmpStatus:setTextColor(1, 1, 0, 1)
         elseif emp.currentJob then
-            if emp.currentJob.type == "RETURN_TO_PARKING" then
+            local jobType = emp.currentJob.type
+            if jobType == "RETURN_TO_PARKING" then
                 statusText = g_i18n:getText("em_status_returning")
+            elseif jobType == "DRIVING_TO_TOOL" then
+                statusText = g_i18n:getText("em_status_driving_to_tool")
+            elseif jobType == "APPROACHING_TOOL" or jobType == "ATTACHING_TOOL" then
+                statusText = g_i18n:getText("em_status_attaching_tool")
+            elseif jobType == "RETURNING_TOOL" then
+                statusText = g_i18n:getText("em_status_returning_tool")
             else
                 statusText = emp.currentJob.workType or g_i18n:getText("em_status_working")
             end
@@ -276,7 +309,6 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         self.txtEmpStatus:setText(statusText)
     end
 
-    -- Vehicle
     if self.txtEmpVehicle then
         local vehicleName = g_i18n:getText("em_none")
         if emp.assignedVehicleId and g_employeeManager then
@@ -293,7 +325,6 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         self.txtEmpVehicle:setText(vehicleName)
     end
 
-    -- Shift
     if self.txtEmpShift then
         self.txtEmpShift:setText(string.format("%02d:00 %s %02d:00",
             emp.shiftStart or 6,
@@ -301,7 +332,6 @@ function EMFieldFrame:displayAssignedEmployee(emp)
             emp.shiftEnd or 18))
     end
 
-    -- Fatigue
     if self.txtEmpFatigue then
         local fatigue = emp.fatigueLevel or 0
         self.txtEmpFatigue:setText(string.format("%.0f%%", fatigue))
@@ -316,10 +346,8 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         end
     end
 
-    -- Skills
     self:displaySkills(emp)
 
-    -- Workflow queue
     if self.txtEmpWorkflow then
         local queue = emp.taskQueue or {}
         if #queue > 0 then
@@ -333,12 +361,18 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         end
     end
 
-    -- Current task
     if self.txtEmpCurrentTask then
         if emp.currentJob then
             local jobType = emp.currentJob.workType or emp.currentJob.type or "Unknown"
-            if emp.currentJob.type == "RETURN_TO_PARKING" then
+            local jt = emp.currentJob.type
+            if jt == "RETURN_TO_PARKING" then
                 jobType = g_i18n:getText("em_status_returning")
+            elseif jt == "DRIVING_TO_TOOL" then
+                jobType = g_i18n:getText("em_status_driving_to_tool")
+            elseif jt == "APPROACHING_TOOL" or jt == "ATTACHING_TOOL" then
+                jobType = g_i18n:getText("em_status_attaching_tool")
+            elseif jt == "RETURNING_TOOL" then
+                jobType = g_i18n:getText("em_status_returning_tool")
             end
             local fieldId = emp.currentJob.fieldId
             if fieldId then
@@ -405,4 +439,12 @@ end
 
 function EMFieldFrame:getMenuButtonInfo()
     return self.menuButtonInfo
+end
+
+function EMFieldFrame:onTargetCropChanged(state)
+    local index = self.fieldList:getSelectedIndex()
+    local fieldData = self.fields[index]
+    if fieldData and self.cropNames[state] then
+        g_employeeManager:setFieldTargetCrop(fieldData.fieldId, self.cropNames[state])
+    end
 end

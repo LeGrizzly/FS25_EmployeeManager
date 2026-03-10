@@ -55,8 +55,10 @@ function CropManager:getNextStep(field, targetCropName)
     CustomUtils:debug("[CropManager] Field %d Analysis for %s:", field.fieldId, targetCropName)
     CustomUtils:debug("  - Fruit: %d (Target: %d)", state.fruitTypeIndex, self:getFruitTypeIndex(targetCropName))
     CustomUtils:debug("  - Growth: %d", state.growthState)
+    CustomUtils:debug("  - GroundType: %d (%s)", state.groundType, FieldGroundType.getName(state.groundType) or "UNKNOWN")
+    CustomUtils:debug("  - SprayType: %d | SprayLevel: %d", state.sprayType or 0, state.sprayLevel)
     CustomUtils:debug("  - Plow: %d | Lime: %d | Stones: %d", state.plowLevel, state.limeLevel, state.stoneLevel)
-    CustomUtils:debug("  - Stubble: %d | Weed: %d | Spray: %d", state.stubbleShredLevel, state.weedState, state.sprayLevel)
+    CustomUtils:debug("  - Stubble: %d | Weed: %d | Roller: %d", state.stubbleShredLevel, state.weedState, state.rollerLevel)
 
     local targetFruitIndex = self:getFruitTypeIndex(targetCropName)
     

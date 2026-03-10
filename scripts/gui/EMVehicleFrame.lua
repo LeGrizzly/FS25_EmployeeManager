@@ -9,6 +9,8 @@ function EMVehicleFrame:new()
     return self
 end
 
+EMVehicleFrame.MENU_ICON_SLICE_ID = 'EM_IconVehicle'
+
 function EMVehicleFrame:copyAttributes(src)
     EMVehicleFrame:superClass().copyAttributes(self, src)
 end

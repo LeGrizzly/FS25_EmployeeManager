@@ -71,11 +71,17 @@
         <text name="em_error_no_hired" text="Aucun employe engage. Engagez quelqu'un d'abord !" />
         <text name="em_workflow_started" text="%s a demarre le flux sur le champ %d : %s" />
         <text name="em_workflow_start_failed" text="Echec du demarrage du flux pour %s (verifiez vehicule/equipement)." />
+        <text name="em_error_equipment_failed" text="%s : Échec de l'équipement pour %s. Détachez les outils incompatibles ou vérifiez la disponibilité en magasin." />
         <text name="em_workflow_saved" text="Flux sauvegarde pour %s." />
+        <text name="em_workflow_scheduled" text="%s programme pour demarrer a %02d:00." />
+        <text name="em_workflow_saved_hint" text="Flux sauvegarde pour %s. Demarrage automatique au debut du service." />
         <text name="em_shift_label" text="Horaire" />
         <text name="em_shift_to" text="a" />
         <text name="em_btn_save_start" text="Sauvegarder et Demarrer" />
         <text name="em_btn_save" text="Sauvegarder" />
+        <text name="em_btn_stop" text="Arreter" />
+        <text name="em_workflow_stopped" text="%s arrete. Ne demarrera pas automatiquement." />
+        <text name="em_workflow_queue_complete" text="Toutes les taches terminees pour %s. Flux en pause." />
         <text name="em_btn_workflow_editor" text="Editeur de Flux" />
 
         <text name="em_tab_employees" text="Employés" />
@@ -90,6 +96,7 @@
         <text name="em_field_area" text="Superficie" />
         <text name="em_field_crop" text="Culture Actuelle" />
         <text name="em_field_growth" text="État de Croissance" />
+        <text name="em_field_target_crop" text="Culture Cible" />
         <text name="em_field_condition" text="Condition" />
         <text name="em_field_assigned_employee" text="Employé Assigné" />
         <text name="em_field_empty" text="Vous ne possédez encore aucun champ." />
@@ -152,6 +159,9 @@
         <text name="em_stat_parking" text="Place de parking" />
         <text name="em_no_parking" text="Non assigne" />
         <text name="em_status_returning" text="Retour au parking" />
+        <text name="em_status_driving_to_tool" text="En route vers l'outil" />
+        <text name="em_status_attaching_tool" text="Attelage de l'outil" />
+        <text name="em_status_returning_tool" text="Retour de l'outil" />
 
         <text name="em_milestone_apprentice" text="Apprenti" />
         <text name="em_milestone_companion" text="Compagnon" />

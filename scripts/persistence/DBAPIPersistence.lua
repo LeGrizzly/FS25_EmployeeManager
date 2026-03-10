@@ -1,9 +1,12 @@
 DBAPIPersistence = {}
 DBAPIPersistence.__index = DBAPIPersistence
 DBAPIPersistence.NAMESPACE = "FS25_EmployeeManager"
+DBAPIPersistence.CURRENT_VERSION = 1
 
 function DBAPIPersistence:new()
-    return setmetatable({}, self)
+    local self = setmetatable({}, DBAPIPersistence)
+    self.db = nil
+    return self
 end
 
 function DBAPIPersistence:getName()
@@ -17,20 +20,84 @@ function DBAPIPersistence:getAPI()
     return nil
 end
 
+function DBAPIPersistence:getDb()
+    if self.db then return self.db end
+
+    local api = self:getAPI()
+    if api and api.isReady() and api.hasORM and api.hasORM() then
+        local db = api.bind(self.NAMESPACE)
+        if db then
+            self:initModels(db)
+            self:migrate(db)
+            self.db = db
+            return db
+        end
+    end
+    return nil
+end
+
+function DBAPIPersistence:initModels(db)
+    local _, err = db:define("Employee", {
+        fields = {
+            data = { type = "table", required = true }
+        }
+    })
+    if err then CustomUtils:error("[DBAPIPersistence] Error defining Employee model: %s", tostring(err)) end
+
+    _, err = db:define("Parking", {
+        fields = {
+            spots = { type = "table", required = true },
+            nextSpotId = { type = "number", default = 1 }
+        }
+    })
+    if err then CustomUtils:error("[DBAPIPersistence] Error defining Parking model: %s", tostring(err)) end
+
+    _, err = db:define("Settings", {
+        fields = {
+            version = { type = "number", default = 1 },
+            nextEmployeeId = { type = "number", default = 1 },
+            lastPoolRefreshDay = { type = "number", default = 0 },
+            lastPaymentPeriod = { type = "number", default = 0 }
+        }
+    })
+    if err then CustomUtils:error("[DBAPIPersistence] Error defining Settings model: %s", tostring(err)) end
+
+    _, err = db:define("FieldConfig", {
+        fields = {
+            fieldId = { type = "number", required = true },
+            cropName = { type = "string", required = true }
+        }
+    })
+    if err then CustomUtils:error("[DBAPIPersistence] Error defining FieldConfig model: %s", tostring(err)) end
+end
+
+function DBAPIPersistence:migrate(db)
+    local settings, _ = db:find("Settings")
+    local version = settings and settings.version or 0
+
+    if version < self.CURRENT_VERSION then
+        CustomUtils:info("[DBAPIPersistence] Migrating database from version %d to %d", version, self.CURRENT_VERSION)
+
+        if settings then
+            db:update("Settings", settings.id, { version = self.CURRENT_VERSION })
+        else
+            db:create("Settings", { version = self.CURRENT_VERSION })
+        end
+    end
+end
+
 function DBAPIPersistence:isAvailable()
     if g_currentMission and g_currentMission.missionDynamicInfo and g_currentMission.missionDynamicInfo.isMultiplayer then
-        CustomUtils:debug("[DBAPIPersistence] Multiplayer detected, not available")
         return false
     end
 
     local api = self:getAPI()
-    if api == nil then
-        CustomUtils:debug("[DBAPIPersistence] g_globalMods['FS25_DBAPI'] not found")
+    if api == nil or not api.isReady() then
         return false
     end
 
-    if not api.isReady() then
-        CustomUtils:debug("[DBAPIPersistence] DBAPI present but not ready")
+    if not api.hasORM or not api.hasORM() then
+        CustomUtils:warning("[DBAPIPersistence] DBAPI version too old (no ORM support)")
         return false
     end
 
@@ -38,112 +105,135 @@ function DBAPIPersistence:isAvailable()
 end
 
 function DBAPIPersistence:save(employeeManager, parkingManager)
-    local api = self:getAPI()
-    if api == nil then
-        CustomUtils:error("[DBAPIPersistence] DBAPI not available for save")
+    local db = self:getDb()
+    if not db then
+        CustomUtils:error("[DBAPIPersistence] DBAPI ORM not available for save")
         return false
     end
 
-    local ns = self.NAMESPACE
+    local settings = {
+        nextEmployeeId = employeeManager.nextEmployeeId or 1,
+        lastPoolRefreshDay = employeeManager.lastPoolRefreshDay or 0,
+        lastPaymentPeriod = employeeManager.lastPaymentPeriod or 0
+    }
+    local sRec, _ = db:find("Settings")
+    if sRec then
+        db:update("Settings", sRec.id, settings)
+    else
+        db:create("Settings", settings)
+    end
 
-    local employeeIds = {}
-    for _, e in ipairs(employeeManager.employees) do
-        table.insert(employeeIds, e.id)
-        CustomUtils:debug("[DBAPIPersistence] Saving employee_%d (%s) isHired=%s vehicle=%s", e.id, e.name, tostring(e.isHired), tostring(e.assignedVehicleId))
-        local data = e:toTable()
-        local success, err = api.setValue(ns, "employee_" .. tostring(e.id), data)
-        CustomUtils:debug("[DBAPIPersistence] setValue employee_%d => success=%s err=%s", e.id, tostring(success), tostring(err))
-        if not success then
-            CustomUtils:error("[DBAPIPersistence] Failed to save employee %d: %s", e.id, tostring(err))
-            return false
+    if parkingManager then
+        local pData = {
+            spots = parkingManager.spots or {},
+            nextSpotId = parkingManager.nextSpotId or 1
+        }
+        local pRec, _ = db:find("Parking")
+        if pRec then
+            db:update("Parking", pRec.id, pData)
+        else
+            db:create("Parking", pData)
         end
     end
 
-    local success, err
-    success, err = api.setValue(ns, "meta_employeeIds", employeeIds)
-    CustomUtils:debug("[DBAPIPersistence] setValue meta_employeeIds => success=%s err=%s", tostring(success), tostring(err))
-    if not success then
-        CustomUtils:error("[DBAPIPersistence] Failed to save meta_employeeIds: %s", tostring(err))
-        return false
+    local existing, _ = db:findAll("Employee")
+    if existing then
+        for _, rec in ipairs(existing) do
+            db:delete("Employee", rec.id)
+        end
     end
 
-    api.setValue(ns, "meta_nextEmployeeId", employeeManager.nextEmployeeId)
-    api.setValue(ns, "meta_lastPoolRefreshDay", employeeManager.lastPoolRefreshDay or 0)
-    api.setValue(ns, "meta_lastPaymentPeriod", employeeManager.lastPaymentPeriod or 0)
-
-    if parkingManager then
-        local parkingData = {
-            spots = parkingManager.spots,
-            nextSpotId = parkingManager.nextSpotId,
-        }
-        api.setValue(ns, "parking", parkingData)
-    end
-
-    local hiredCount = 0
+    local count = 0
     for _, e in ipairs(employeeManager.employees) do
-        if e.isHired then hiredCount = hiredCount + 1 end
+        local _, err = db:create("Employee", { data = e:toTable() })
+        if not err then
+            count = count + 1
+        else
+            CustomUtils:error("[DBAPIPersistence] Failed to save employee %d: %s", e.id, tostring(err))
+        end
     end
-    CustomUtils:info("[DBAPIPersistence] Saved %d employees (%d hired) via DBAPI", #employeeManager.employees, hiredCount)
+
+    local existingFC, _ = db:findAll("FieldConfig")
+    if existingFC then
+        for _, rec in ipairs(existingFC) do
+            db:delete("FieldConfig", rec.id)
+        end
+    end
+
+    local fcCount = 0
+    for fieldId, config in pairs(employeeManager.fieldConfigs or {}) do
+        local _, err = db:create("FieldConfig", { fieldId = fieldId, cropName = config.cropName or "" })
+        if not err then
+            fcCount = fcCount + 1
+        end
+    end
+
+    CustomUtils:info("[DBAPIPersistence] Saved %d employees and %d field configs via DBAPI ORM", count, fcCount)
     return true
 end
 
 function DBAPIPersistence:load(employeeManager, parkingManager)
-    local api = self:getAPI()
-    if api == nil then
-        CustomUtils:error("[DBAPIPersistence] DBAPI not available for load")
+    local db = self:getDb()
+    if not db then
+        CustomUtils:error("[DBAPIPersistence] DBAPI ORM not available for load")
         return false
     end
 
-    local ns = self.NAMESPACE
-
-    local employeeIds = api.getValue(ns, "meta_employeeIds")
-    if employeeIds == nil or type(employeeIds) ~= "table" or #employeeIds == 0 then
-        CustomUtils:info("[DBAPIPersistence] No employee data found in DBAPI")
-        return false
+    local sRec, _ = db:find("Settings")
+    if sRec then
+        employeeManager.nextEmployeeId = sRec.nextEmployeeId or 1
+        employeeManager.lastPoolRefreshDay = sRec.lastPoolRefreshDay or 0
+        employeeManager.lastPaymentPeriod = sRec.lastPaymentPeriod or 0
     end
-
-    employeeManager.employees = {}
-    local maxId = 0
-    for _, id in ipairs(employeeIds) do
-        local data = api.getValue(ns, "employee_" .. tostring(id))
-        if data ~= nil then
-            local emp = Employee.fromTable(data)
-            if emp ~= nil then
-                if emp.assignedVehicleId and emp.assignedVehicleId ~= 0 then
-                    local vehicle = employeeManager:getVehicleById(emp.assignedVehicleId)
-                    if vehicle then
-                        emp:assignVehicle(vehicle)
-                    end
-                end
-                table.insert(employeeManager.employees, emp)
-                if emp.id > maxId then maxId = emp.id end
-            end
-        end
-    end
-
-    local nextId = api.getValue(ns, "meta_nextEmployeeId")
-    employeeManager.nextEmployeeId = nextId or (maxId + 1)
-    if employeeManager.nextEmployeeId <= maxId then
-        employeeManager.nextEmployeeId = maxId + 1
-    end
-
-    employeeManager.lastPoolRefreshDay = api.getValue(ns, "meta_lastPoolRefreshDay") or 0
-    employeeManager.lastPaymentPeriod = api.getValue(ns, "meta_lastPaymentPeriod") or 0
 
     if parkingManager then
-        local parkingData = api.getValue(ns, "parking")
-        if parkingData and type(parkingData) == "table" then
-            parkingManager.spots = parkingData.spots or {}
-            parkingManager.nextSpotId = parkingData.nextSpotId or 1
-            CustomUtils:info("[DBAPIPersistence] Loaded %d parking spots", #parkingManager.spots)
+        local pRec, _ = db:find("Parking")
+        if pRec then
+            parkingManager.spots = pRec.spots or {}
+            parkingManager.nextSpotId = pRec.nextSpotId or 1
+            CustomUtils:debug("[DBAPIPersistence] Loaded %d parking spots", #parkingManager.spots)
         end
     end
 
-    local hiredCount = 0
-    for _, e in ipairs(employeeManager.employees) do
-        if e.isHired then hiredCount = hiredCount + 1 end
+    local emps, _ = db:findAll("Employee")
+    if emps and #emps > 0 then
+        employeeManager.employees = {}
+        local maxId = 0
+        local hiredCount = 0
+        for _, rec in ipairs(emps) do
+            if rec.data then
+                local emp = Employee.fromTable(rec.data)
+                if emp then
+                    if emp.assignedVehicleId and emp.assignedVehicleId ~= 0 then
+                        local vehicle = employeeManager:getVehicleById(emp.assignedVehicleId)
+                        if vehicle then
+                            emp:assignVehicle(vehicle)
+                        end
+                    end
+                    table.insert(employeeManager.employees, emp)
+                    if emp.id > maxId then maxId = emp.id end
+                    if emp.isHired then hiredCount = hiredCount + 1 end
+                end
+            end
+        end
+
+        if employeeManager.nextEmployeeId <= maxId then
+            employeeManager.nextEmployeeId = maxId + 1
+        end
+
+        CustomUtils:info("[DBAPIPersistence] Loaded %d employees (%d hired) via DBAPI ORM", #employeeManager.employees, hiredCount)
+    else
+        CustomUtils:info("[DBAPIPersistence] No employee data found in DBAPI ORM")
     end
-    CustomUtils:info("[DBAPIPersistence] Loaded %d employees (%d hired) via DBAPI", #employeeManager.employees, hiredCount)
+
+    local fcs, _ = db:findAll("FieldConfig")
+    employeeManager.fieldConfigs = {}
+    if fcs then
+        for _, rec in ipairs(fcs) do
+            employeeManager.fieldConfigs[rec.fieldId] = { cropName = rec.cropName }
+        end
+        CustomUtils:debug("[DBAPIPersistence] Loaded %d field configs", #fcs)
+    end
 
     local numToGenerate = 10 - #employeeManager.employees
     if numToGenerate > 0 then

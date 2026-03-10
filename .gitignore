@@ -1,0 +1,7 @@
+.claude/settings.local.json
+.vscode/lua-format.yaml
+build.*
+CLAUDE.md
+feature.md
+roadmap.md
+skillsEmployee.md

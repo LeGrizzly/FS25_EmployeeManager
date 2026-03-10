@@ -100,64 +100,25 @@ function JobManager:startFieldWork(employee, fieldId, workType)
         vehicle:stopAIJob()
     end
 
-    self:ensureEquipment(vehicle, workType, function(success)
-        if not success then
-            CustomUtils:error("[JobManager] Could not ensure equipment for %s - Job Aborted", workType)
+    self:ensureEquipment(vehicle, workType, function(result, data)
+        if result == true then
+            CustomUtils:info("[JobManager] Equipment ensured. Deferring start via EQUIPMENT_READY state...")
+            employee.currentJob = {
+                type = "EQUIPMENT_READY",
+                fieldId = fieldId,
+                workType = workType,
+                readyFrame = 0,
+                readyTime = g_currentMission.time + 1000
+            }
+        elseif result == "DRIVE_TO_TOOL" then
+            CustomUtils:info("[JobManager] Owned tool found. Starting drive-to-tool for %s...", employee.name)
+            self:startDriveToTool(employee, vehicle, data.tool, fieldId, workType)
+        else
+            local msg = string.format(g_i18n:getText("em_error_equipment_failed"), employee.name, workType)
+            CustomUtils:error("[JobManager] " .. msg)
+            g_currentMission:showBlinkingWarning(msg, 5000)
             employee.currentJob = nil
-            return
         end
-
-        CustomUtils:debug("[JobManager] Equipment ensured. Check distance...")
-
-        local x, z = field:getCenterOfFieldWorldPosition()
-        local vx, _, vz = getWorldTranslation(vehicle.rootNode)
-        local distance = MathUtil.vector2Length(vx - x, vz - z)
-
-        CustomUtils:info("[JobManager] Distance to Field %d: %.1f m", fieldId, distance)
-
-        if distance > 150 then
-            CustomUtils:info("[JobManager] Field is far. Starting TRANSIT (GOTO) job first.")
-
-            local aiJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.GOTO)
-            if aiJob then
-                local farmId = g_currentMission:getFarmId()
-                aiJob:applyCurrentState(vehicle, g_currentMission, farmId, false)
-                aiJob.positionAngleParameter:setPosition(x, z)
-
-                local dx, dz = x - vx, z - vz
-                local angle = MathUtil.getYRotationFromDirection(dx, dz)
-                aiJob.positionAngleParameter:setAngle(angle)
-
-                aiJob:setValues()
-
-                local validateSuccess, errorMessage = aiJob:validate(farmId)
-                if validateSuccess then
-                    g_currentMission.aiSystem:startJob(aiJob, farmId)
-
-                    employee.currentJob = {
-                        aiJobId = aiJob.jobId,
-                        type = "TRANSIT",
-                        fieldId = fieldId,
-                        workType = workType,
-                        startTime = g_currentMission.time
-                    }
-
-                    employee.pendingJob = {
-                        fieldId = fieldId,
-                        workType = workType
-                    }
-                    CustomUtils:info("[JobManager] Employee %s is now in TRANSIT to field %d", employee.name, fieldId)
-                    return
-                else
-                    CustomUtils:error("[JobManager] Transit GOTO job failed validation: %s", errorMessage)
-                end
-            else
-                CustomUtils:error("[JobManager] Failed to create GOTO job")
-            end
-        end
-
-        CustomUtils:debug("[JobManager] Starting FIELDWORK immediately (Direct or Close Proximity).")
-        self:startFieldWorkJob(employee, vehicle, fieldId, workType)
     end)
 
     return true
@@ -176,19 +137,32 @@ function JobManager:startFieldWorkJob(employee, vehicle, fieldId, workType)
     local farmId = g_currentMission:getFarmId()
 
     local x, z = field:getCenterOfFieldWorldPosition()
-    local vx, _, vz = getWorldTranslation(vehicle.rootNode)
-    local distance = MathUtil.vector2Length(vx - x, vz - z)
-    aiJob.isDirectStart = distance < 50
 
-    aiJob:applyCurrentState(vehicle, g_currentMission, farmId, aiJob.isDirectStart)
-
-    if not aiJob.isDirectStart then
-        aiJob.positionAngleParameter:setPosition(x, z)
-    else
-        local dirX, _, dirZ = localDirectionToWorld(vehicle.rootNode, 0, 0, 1)
-        local angle = MathUtil.getYRotationFromDirection(dirX, dirZ)
-        aiJob.positionAngleParameter:setAngle(angle)
+    if field.fieldState == nil then
+        field.fieldState = FieldState.new()
     end
+    field.fieldState:update(x, z)
+    local fs = field.fieldState
+
+    local fruitName = "NONE"
+    if fs.fruitTypeIndex ~= FruitType.UNKNOWN then
+        local ft = g_fruitTypeManager:getFruitTypeByIndex(fs.fruitTypeIndex)
+        fruitName = ft and ft.name or "UNKNOWN"
+    end
+    local groundName = FieldGroundType.getName(fs.groundType) or "UNKNOWN"
+
+    CustomUtils:info("[JobManager] Field %d state before %s:", fieldId, workType)
+    CustomUtils:info("  Fruit: %s (%d) | Growth: %d | Ground: %s (%d)",
+        fruitName, fs.fruitTypeIndex, fs.growthState, groundName, fs.groundType)
+    CustomUtils:info("  Plow: %d | Lime: %d | Stones: %d | Spray: %d | SprayType: %d",
+        fs.plowLevel, fs.limeLevel, fs.stoneLevel, fs.sprayLevel, fs.sprayType or 0)
+    CustomUtils:info("  Stubble: %d | Weed: %d | Roller: %d",
+        fs.stubbleShredLevel, fs.weedState, fs.rollerLevel)
+
+    aiJob.isDirectStart = false
+
+    aiJob:applyCurrentState(vehicle, g_currentMission, farmId, false)
+    aiJob.positionAngleParameter:setPosition(x, z)
 
     aiJob:setValues()
 
@@ -219,8 +193,32 @@ function JobManager:startFieldWorkJob(employee, vehicle, fieldId, workType)
     end
 end
 
----Checks if vehicle has required tool, otherwise rents one
+---Detaches all implements from a vehicle
+---@param vehicle table
+function JobManager:detachAllImplements(vehicle)
+    if not vehicle or not vehicle.getAttachedImplements then return end
+
+    local attachedImplements = vehicle:getAttachedImplements()
+    for i = #attachedImplements, 1, -1 do
+        local implement = attachedImplements[i]
+        if implement and implement.object then
+            CustomUtils:info("[JobManager] Detaching %s from %s", implement.object:getName(), vehicle:getName())
+            if vehicle.detachImplementByObject then
+                vehicle:detachImplementByObject(implement.object)
+            end
+        end
+    end
+end
+
+---Checks if vehicle has required tool via three-tier search: attached → owned → rental
+---Callback receives (true) for ready, ("DRIVE_TO_TOOL", data) for owned tool needing drive, or (false) for failure
 function JobManager:ensureEquipment(vehicle, workType, callback)
+    local employee = g_employeeManager:getEmployeeByVehicle(vehicle)
+    if employee and employee.temporaryRental then
+        CustomUtils:warning("[JobManager] ensureEquipment: cleaning up lingering rental for %s", employee.name)
+        g_employeeManager:returnRentedEquipment(employee)
+    end
+
     local categoryName = JobManager.WORK_TYPE_TO_CATEGORY[workType]
     if not categoryName then
         callback(true)
@@ -228,33 +226,43 @@ function JobManager:ensureEquipment(vehicle, workType, callback)
     end
 
     local attachedImplements = vehicle:getAttachedImplements()
-    local hasAttachedTool = #attachedImplements > 0
 
     for _, implement in ipairs(attachedImplements) do
         local obj = implement.object
-        if obj ~= nil and obj.getIsAIJobSupported ~= nil and obj:getIsAIJobSupported("AIJobFieldWork") then
-            callback(true)
-            return
+        if obj ~= nil then
+            local storeItem = g_storeManager:getItemByXMLFilename(obj.configFileName)
+            if storeItem and storeItem.categoryName == categoryName then
+                CustomUtils:info("[JobManager] Tier 1: Vehicle already has correct tool (%s) for %s", obj:getName(), workType)
+                callback(true)
+                return
+            end
         end
     end
 
-    if hasAttachedTool then
-        CustomUtils:warning("[JobManager] Vehicle already has an implement attached but it doesn't support %s. Cannot attach another.", workType)
-        callback(false)
-        return
+    if #attachedImplements > 0 then
+        CustomUtils:info("[JobManager] Detaching existing implements before attaching tool for %s", workType)
+        self:detachAllImplements(vehicle)
     end
 
-    local parkedTool = self:findToolInParking(categoryName, vehicle)
-    if parkedTool then
-        CustomUtils:info("[JobManager] Found owned tool %s in parking, attaching...", parkedTool:getName())
-        if vehicle.attachImplement then
-            vehicle:attachImplement(parkedTool, 1, 1)
+    local ownedTool = self:findOwnedTool(categoryName, vehicle)
+    if ownedTool then
+        local tx, _, tz = getWorldTranslation(ownedTool.rootNode)
+        local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+        local dist = MathUtil.vector2Length(vx - tx, vz - tz)
+
+        if dist < 10 then
+            CustomUtils:info("[JobManager] Tier 2: Owned tool %s is nearby (%.1fm). Attempting native attach...",
+                ownedTool:getName(), dist)
+            self:attemptNativeAttach(vehicle, ownedTool, callback)
+        else
+            CustomUtils:info("[JobManager] Tier 2: Found owned tool %s at %.1fm away. Employee must drive to it.",
+                ownedTool:getName(), dist)
+            callback("DRIVE_TO_TOOL", { tool = ownedTool, toolX = tx, toolZ = tz })
         end
-        callback(true)
         return
     end
 
-    CustomUtils:info("[JobManager] No tool found for %s. Renting equipment...", workType)
+    CustomUtils:info("[JobManager] Tier 3: No owned tool found for %s. Renting equipment...", workType)
     local storeItem = self:findSuitableTool(categoryName)
     if storeItem then
         self:rentAndAttach(vehicle, storeItem, callback)
@@ -262,6 +270,442 @@ function JobManager:ensureEquipment(vehicle, workType, callback)
         CustomUtils:error("[JobManager] No suitable tool found in category %s", categoryName)
         callback(false)
     end
+end
+
+---Searches ALL farm vehicles for an unattached, unused tool matching the category
+---@param categoryName string
+---@param vehicle table The tractor that needs the tool
+---@return table|nil The found tool vehicle, or nil
+function JobManager:findOwnedTool(categoryName, vehicle)
+    if not g_currentMission or not g_currentMission.vehicleSystem then return nil end
+
+    local farmId = g_currentMission:getFarmId()
+    local vehicles = g_currentMission.vehicleSystem.vehicles
+
+    for _, v in ipairs(vehicles) do
+        if v ~= vehicle and v.ownerFarmId == farmId then
+            local storeItem = g_storeManager:getItemByXMLFilename(v.configFileName)
+            if storeItem and storeItem.categoryName == categoryName then
+                if not self:isAttachedToAnyVehicle(v) and not self:isToolInUseByEmployee(v.id) then
+                    CustomUtils:debug("[JobManager] findOwnedTool: Match found — %s (ID: %d)", v:getName(), v.id)
+                    return v
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+---Checks if a tool is currently attached to any vehicle
+---@param tool table
+---@return boolean
+function JobManager:isAttachedToAnyVehicle(tool)
+    if tool.getAttacherVehicle and tool:getAttacherVehicle() ~= nil then
+        return true
+    end
+    return false
+end
+
+---Checks if a tool is currently rented/in-use by another employee
+---@param toolId number
+---@return boolean
+function JobManager:isToolInUseByEmployee(toolId)
+    if not g_employeeManager then return false end
+
+    for _, employee in ipairs(g_employeeManager.employees) do
+        if employee.isHired and employee.temporaryRental == toolId then
+            return true
+        end
+    end
+    return false
+end
+
+---Teleports an owned tool to align with the vehicle's rear attacher joint
+---Positions the tool so its input attacher joint meets the vehicle's rear attacher joint
+---@param tool table
+---@param vehicle table
+function JobManager:positionToolNearVehicle(tool, vehicle)
+    local vx, vy, vz = getWorldTranslation(vehicle.rootNode)
+
+    local rearJointX, rearJointY, rearJointZ = vx, vy, vz
+    if vehicle.spec_attacherJoints then
+        local joints = vehicle:getAttacherJoints()
+        if joints then
+            for _, joint in ipairs(joints) do
+                if joint.jointTransform then
+                    local _, _, lz = localToLocal(joint.jointTransform, vehicle.rootNode, 0, 0, 0)
+                    if lz < -0.2 then
+                        rearJointX, rearJointY, rearJointZ = getWorldTranslation(joint.jointTransform)
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    local toolJointOffsetX, toolJointOffsetZ = 0, 0
+    local inputJoints = tool.getInputAttacherJoints and tool:getInputAttacherJoints()
+    if inputJoints and #inputJoints > 0 then
+        local joint = inputJoints[1]
+        if joint.node then
+            local lx, _, lz = localToLocal(joint.node, tool.rootNode, 0, 0, 0)
+            toolJointOffsetX, toolJointOffsetZ = lx, lz
+        end
+    end
+
+    local backDirX, _, backDirZ = localDirectionToWorld(vehicle.rootNode, 0, 0, -1)
+    local backRightX, _, backRightZ = localDirectionToWorld(vehicle.rootNode, 1, 0, 0)
+
+    local targetX = rearJointX - backRightX * toolJointOffsetX - backDirX * toolJointOffsetZ
+    local targetY = rearJointY + 0.3
+    local targetZ = rearJointZ - backRightZ * toolJointOffsetX - backDirZ * toolJointOffsetZ
+
+    local vDirX, _, vDirZ = localDirectionToWorld(vehicle.rootNode, 0, 0, 1)
+    local vehicleRotY = MathUtil.getYRotationFromDirection(vDirX, vDirZ)
+
+    if tool.setAbsolutePosition then
+        tool:setAbsolutePosition(targetX, targetY, targetZ, 0, vehicleRotY, 0)
+        CustomUtils:debug("[JobManager] Positioned %s at (%.1f, %.1f, %.1f) rot=%.1f° via setAbsolutePosition",
+            tool:getName(), targetX, targetY, targetZ, math.deg(vehicleRotY))
+    elseif tool.rootNode then
+        setWorldTranslation(tool.rootNode, targetX, targetY, targetZ)
+        setWorldRotation(tool.rootNode, 0, vehicleRotY, 0)
+        CustomUtils:debug("[JobManager] Positioned %s at (%.1f, %.1f, %.1f) rot=%.1f° via setWorldTranslation",
+            tool:getName(), targetX, targetY, targetZ, math.deg(vehicleRotY))
+    else
+        CustomUtils:warning("[JobManager] Cannot position tool %s — no positioning method available", tool:getName())
+    end
+end
+
+---Attempts native FS25 attach when tool is close to the vehicle
+---@param vehicle table
+---@param tool table
+---@param callback function
+function JobManager:attemptNativeAttach(vehicle, tool, callback)
+    if vehicle.spec_attacherJoints then
+        AttacherJoints.updateVehiclesInAttachRange(vehicle,
+            AttacherJoints.MAX_ATTACH_DISTANCE_SQ or 100,
+            AttacherJoints.MAX_ATTACH_ANGLE or 1.0, true)
+
+        local info = vehicle.spec_attacherJoints.attachableInfo
+        if info and info.attachable == tool then
+            CustomUtils:info("[JobManager] Native attach: Tool %s detected in range. Attaching via base game...", tool:getName())
+            vehicle:attachImplementFromInfo(info)
+            callback(true)
+            return
+        end
+    end
+
+    CustomUtils:info("[JobManager] Native attach scan missed. Falling back to position + attachImplement for %s", tool:getName())
+    self:positionToolNearVehicle(tool, vehicle)
+
+    local vJointIdx, tJointIdx = self:findCompatibleJoints(vehicle, tool)
+    if vehicle.attachImplement then
+        vehicle:attachImplement(tool, tJointIdx, vJointIdx)
+    end
+    callback(true)
+end
+
+---Calculates optimal approach position for a vehicle to reach a tool for attaching
+---Returns a point roughly 8m in front of the tool's input attacher joint direction
+---@param vehicle table
+---@param tool table
+---@return number approachX, number approachZ, number approachAngle
+function JobManager:calculateApproachPosition(vehicle, tool)
+    local tx, _, tz = getWorldTranslation(tool.rootNode)
+
+    local inputJoints = tool.getInputAttacherJoints and tool:getInputAttacherJoints()
+    if inputJoints and #inputJoints > 0 then
+        local joint = inputJoints[1]
+        if joint.node then
+            local jdx, _, jdz = localDirectionToWorld(joint.node, 0, 0, 1)
+            local jointLen = math.sqrt(jdx * jdx + jdz * jdz)
+            if jointLen > 0.001 then
+                jdx = jdx / jointLen
+                jdz = jdz / jointLen
+
+                local approachX = tx + jdx * 8
+                local approachZ = tz + jdz * 8
+
+                local approachAngle = MathUtil.getYRotationFromDirection(-jdx, -jdz)
+                return approachX, approachZ, approachAngle
+            end
+        end
+    end
+
+    local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+    local dx = tx - vx
+    local dz = tz - vz
+    local dist = math.sqrt(dx * dx + dz * dz)
+    if dist > 0.001 then
+        dx = dx / dist
+        dz = dz / dist
+    else
+        dx, dz = 0, 1
+    end
+
+    local approachX = tx - dx * 8
+    local approachZ = tz - dz * 8
+    local approachAngle = MathUtil.getYRotationFromDirection(dx, dz)
+    return approachX, approachZ, approachAngle
+end
+
+---Starts a GOTO AI job to drive the vehicle to a tool for attachment
+---@param employee table
+---@param vehicle table
+---@param tool table
+---@param fieldId number
+---@param workType string
+function JobManager:startDriveToTool(employee, vehicle, tool, fieldId, workType)
+    local approachX, approachZ, approachAngle = self:calculateApproachPosition(vehicle, tool)
+
+    local aiJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.GOTO)
+    if not aiJob then
+        CustomUtils:error("[JobManager] Failed to create GOTO job for drive-to-tool. Falling back to teleport.")
+        self:fallbackTeleportAttach(employee, vehicle, tool, fieldId, workType)
+        return
+    end
+
+    local farmId = g_currentMission:getFarmId()
+    aiJob:applyCurrentState(vehicle, g_currentMission, farmId, false)
+    aiJob.positionAngleParameter:setPosition(approachX, approachZ)
+    aiJob.positionAngleParameter:setAngle(approachAngle)
+    aiJob:setValues()
+
+    local validateSuccess, errorMessage = aiJob:validate(farmId)
+    if validateSuccess then
+        g_currentMission.aiSystem:startJob(aiJob, farmId)
+        employee.currentJob = {
+            type = "DRIVING_TO_TOOL",
+            aiJobId = aiJob.jobId,
+            fieldId = fieldId,
+            workType = workType,
+            targetToolId = tool.id,
+            startTime = g_currentMission.time
+        }
+        CustomUtils:info("[JobManager] %s is now driving to tool %s (ID: %d)", employee.name, tool:getName(), tool.id)
+    else
+        CustomUtils:error("[JobManager] Drive-to-tool GOTO failed validation: %s. Falling back to teleport.", tostring(errorMessage))
+        self:fallbackTeleportAttach(employee, vehicle, tool, fieldId, workType)
+    end
+end
+
+---Attempts to attach the tool directly if in range, otherwise teleports it
+---@param employee table
+---@param vehicle table
+---@param tool table
+---@param fieldId number
+---@param workType string
+function JobManager:tryDirectAttachOrTeleport(employee, vehicle, tool, fieldId, workType)
+    if vehicle.spec_attacherJoints then
+        AttacherJoints.updateVehiclesInAttachRange(vehicle,
+            AttacherJoints.MAX_ATTACH_DISTANCE_SQ or 100,
+            AttacherJoints.MAX_ATTACH_ANGLE or 1.0, true)
+
+        local info = vehicle.spec_attacherJoints.attachableInfo
+        if info and info.attachable == tool then
+            CustomUtils:info("[JobManager] %s: Tool %s in attach range! Attaching directly...", employee.name, tool:getName())
+            vehicle:attachImplementFromInfo(info)
+            employee.currentJob = {
+                type = "ATTACHING_TOOL",
+                fieldId = fieldId,
+                workType = workType,
+                targetToolId = tool.id,
+                attachStartTime = g_currentMission.time
+            }
+            return
+        end
+    end
+
+    CustomUtils:warning("[JobManager] %s: Tool not in attach range. Teleporting tool to vehicle rear.", employee.name)
+    self:fallbackTeleportAttach(employee, vehicle, tool, fieldId, workType)
+end
+
+---Fallback: teleport tool near vehicle and attach directly (used when GOTO fails or timeout)
+---@param employee table
+---@param vehicle table
+---@param tool table
+---@param fieldId number
+---@param workType string
+function JobManager:fallbackTeleportAttach(employee, vehicle, tool, fieldId, workType)
+    CustomUtils:warning("[JobManager] FALLBACK: Teleporting tool %s to vehicle %s", tool:getName(), vehicle:getName())
+
+    if tool.removeFromPhysics then
+        tool:removeFromPhysics()
+    end
+
+    self:positionToolNearVehicle(tool, vehicle)
+
+    if tool.addToPhysics then
+        tool:addToPhysics()
+    end
+
+    local vJointIdx, tJointIdx = self:findCompatibleJoints(vehicle, tool)
+    if vehicle.attachImplement then
+        vehicle:attachImplement(tool, tJointIdx, vJointIdx)
+    end
+
+    self:stabilizeVehicle(vehicle)
+
+    employee.currentJob = {
+        type = "EQUIPMENT_READY",
+        fieldId = fieldId,
+        workType = workType,
+        readyFrame = 0,
+        readyTime = g_currentMission.time + 2000
+    }
+end
+
+---Stabilizes a vehicle after tool teleport to prevent flip/roll
+---Preserves position and heading but resets pitch and roll to upright
+---@param vehicle table
+function JobManager:stabilizeVehicle(vehicle)
+    if not vehicle or not vehicle.rootNode then
+        return
+    end
+
+    local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+    local _, yRot, _ = getWorldRotation(vehicle.rootNode)
+
+    if vehicle.removeFromPhysics then
+        vehicle:removeFromPhysics()
+    end
+
+    if vehicle.setRelativePosition then
+        vehicle:setRelativePosition(vx, 0.5, vz, yRot)
+        CustomUtils:debug("[JobManager] Stabilized vehicle %s at (%.1f, %.1f) heading %.1f°", vehicle:getName(), vx, vz, math.deg(yRot))
+    end
+
+    if vehicle.addToPhysics then
+        vehicle:addToPhysics()
+    end
+end
+
+---Starts a GOTO job to return the current tool to its parking spot before switching tools
+---@param employee table
+---@param vehicle table
+---@param tool table The tool to return
+---@param nextFieldId number
+---@param nextWorkType string
+function JobManager:startReturnTool(employee, vehicle, tool, nextFieldId, nextWorkType)
+    CustomUtils:info("[JobManager] %s: Detaching tool %s at field edge before switching to %s",
+        employee.name, tool:getName(), nextWorkType)
+    self:detachAllImplements(vehicle)
+    employee.currentJob = nil
+    self:startFieldWork(employee, nextFieldId, nextWorkType)
+end
+
+---Starts a GOTO job to return the current tool to a specific parking spot
+---Used when the employee needs to drive the tool back to its original location
+---@param employee table
+---@param vehicle table
+---@param parkingX number
+---@param parkingZ number
+---@param nextFieldId number
+---@param nextWorkType string
+function JobManager:startReturnToolToSpot(employee, vehicle, parkingX, parkingZ, nextFieldId, nextWorkType)
+    local aiJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.GOTO)
+    if not aiJob then
+        CustomUtils:error("[JobManager] Failed to create GOTO job for tool return. Detaching in place.")
+        self:detachAllImplements(vehicle)
+        employee.currentJob = nil
+        self:startFieldWork(employee, nextFieldId, nextWorkType)
+        return
+    end
+
+    local farmId = g_currentMission:getFarmId()
+    aiJob:applyCurrentState(vehicle, g_currentMission, farmId, false)
+    aiJob.positionAngleParameter:setPosition(parkingX, parkingZ)
+    aiJob:setValues()
+
+    local validateSuccess, errorMessage = aiJob:validate(farmId)
+    if validateSuccess then
+        g_currentMission.aiSystem:startJob(aiJob, farmId)
+        employee.currentJob = {
+            type = "RETURNING_TOOL",
+            aiJobId = aiJob.jobId,
+            nextFieldId = nextFieldId,
+            nextWorkType = nextWorkType,
+            startTime = g_currentMission.time
+        }
+        CustomUtils:info("[JobManager] %s is returning tool to parking before switching to %s",
+            employee.name, nextWorkType)
+    else
+        CustomUtils:error("[JobManager] Tool return GOTO failed validation: %s. Detaching in place.", tostring(errorMessage))
+        self:detachAllImplements(vehicle)
+        employee.currentJob = nil
+        self:startFieldWork(employee, nextFieldId, nextWorkType)
+    end
+end
+
+---Gets the first attached implement on a vehicle
+---@param vehicle table
+---@return table|nil implement object
+function JobManager:getFirstAttachedImplement(vehicle)
+    if not vehicle or not vehicle.getAttachedImplements then return nil end
+    local implements = vehicle:getAttachedImplements()
+    if #implements > 0 and implements[1].object then
+        return implements[1].object
+    end
+    return nil
+end
+
+---Checks if the vehicle has the correct tool for a given category
+---@param vehicle table
+---@param categoryName string
+---@return boolean
+function JobManager:hasCorrectTool(vehicle, categoryName)
+    if not vehicle or not categoryName then return false end
+    local attachedImplements = vehicle:getAttachedImplements()
+    for _, implement in ipairs(attachedImplements) do
+        local obj = implement.object
+        if obj then
+            local storeItem = g_storeManager:getItemByXMLFilename(obj.configFileName)
+            if storeItem and storeItem.categoryName == categoryName then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+---Finds compatible rear attacher joints between a vehicle and a tool
+---@param vehicle table
+---@param tool table
+---@return number vehicleJointIndex, number toolJointIndex
+function JobManager:findCompatibleJoints(vehicle, tool)
+    local vehicleJointIndex = 1
+    local toolJointIndex = 1
+
+    if vehicle.getAttacherJoints and tool.getInputAttacherJoints then
+        local vJoints = vehicle:getAttacherJoints()
+        local tJoints = tool:getInputAttacherJoints()
+
+        local rearIndices = {}
+        for i, joint in ipairs(vJoints) do
+            local lx, ly, lz = localToLocal(joint.jointTransform, vehicle.rootNode, 0, 0, 0)
+            if joint.attacherJointDirection == -1 or lz < -0.2 then
+                table.insert(rearIndices, i)
+            end
+        end
+
+        local found = false
+        for _, vIdx in ipairs(#rearIndices > 0 and rearIndices or {1}) do
+            local vJoint = vJoints[vIdx]
+            for tIdx, tJoint in ipairs(tJoints) do
+                if vJoint.jointType == tJoint.jointType then
+                    vehicleJointIndex = vIdx
+                    toolJointIndex = tIdx
+                    found = true
+                    break
+                end
+            end
+            if found then break end
+        end
+    end
+
+    return vehicleJointIndex, toolJointIndex
 end
 
 function JobManager:findSuitableTool(categoryName)
@@ -284,35 +728,7 @@ function JobManager:rentAndAttach(vehicle, storeItem, callback)
         if vehicleLoadState == VehicleLoadingState.OK then
             local tool = vehicles[1]
 
-            local vehicleJointIndex = 1
-            local toolJointIndex = 1
-
-            if vehicle.getAttacherJoints and tool.getInputAttacherJoints then
-                local vJoints = vehicle:getAttacherJoints()
-                local tJoints = tool:getInputAttacherJoints()
-
-                local rearIndices = {}
-                for i, joint in ipairs(vJoints) do
-                    local lx, ly, lz = localToLocal(joint.jointTransform, vehicle.rootNode, 0, 0, 0)
-                    if joint.attacherJointDirection == -1 or lz < -0.2 then
-                        table.insert(rearIndices, i)
-                    end
-                end
-
-                local found = false
-                for _, vIdx in ipairs(#rearIndices > 0 and rearIndices or {1}) do
-                    local vJoint = vJoints[vIdx]
-                    for tIdx, tJoint in ipairs(tJoints) do
-                        if vJoint.jointType == tJoint.jointType then
-                            vehicleJointIndex = vIdx
-                            toolJointIndex = tIdx
-                            found = true
-                            break
-                        end
-                    end
-                    if found then break end
-                end
-            end
+            local vehicleJointIndex, toolJointIndex = self:findCompatibleJoints(vehicle, tool)
 
             CustomUtils:debug("[JobManager] Attaching %s (Joint: %d) to %s (Joint: %d)",
                 tool:getName(), toolJointIndex, vehicle:getName(), vehicleJointIndex)
@@ -386,6 +802,44 @@ function JobManager:handleFieldworkCompletion(employee)
         g_employeeManager:onJobCompleted(employee)
     end
 
+    local queue = employee.taskQueue or {}
+    local currentIdx = employee.currentTaskIndex or 1
+    local nextIdx = currentIdx + 1
+
+    if employee.isAutonomous and nextIdx <= #queue then
+        local nextTask = queue[nextIdx]
+        local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+
+        local nextCategory = JobManager.WORK_TYPE_TO_CATEGORY[nextTask]
+        local currentToolOk = vehicle and self:hasCorrectTool(vehicle, nextCategory)
+
+        if not currentToolOk and vehicle then
+            local currentTool = self:getFirstAttachedImplement(vehicle)
+            if currentTool then
+                CustomUtils:info("[JobManager] %s needs tool swap: current tool won't work for %s. Returning tool first.",
+                    employee.name, nextTask)
+                employee.currentTaskIndex = nextIdx
+                self:startReturnTool(employee, vehicle, currentTool, employee.targetFieldId, nextTask)
+                return
+            end
+        end
+
+        employee.currentTaskIndex = nextIdx
+        CustomUtils:info("[JobManager] %s advancing to task %d/%d: %s",
+            employee.name, nextIdx, #queue, nextTask)
+        employee.currentJob = nil
+        self:startFieldWork(employee, employee.targetFieldId, nextTask)
+        return
+    end
+
+    if #queue > 0 then
+        CustomUtils:info("[JobManager] %s completed all %d tasks in workflow", employee.name, #queue)
+        employee.currentTaskIndex = 1
+        employee.isAutonomous = false
+        local msg = string.format(g_i18n:getText("em_workflow_queue_complete"), employee.name)
+        g_currentMission:showBlinkingWarning(msg, 5000)
+    end
+
     if g_parkingManager and employee.assignedVehicleId then
         local spot = g_parkingManager:getSpotForVehicle(employee.assignedVehicleId)
         if spot then
@@ -397,7 +851,8 @@ function JobManager:handleFieldworkCompletion(employee)
                 local dist = math.sqrt(dx * dx + dz * dz)
 
                 if dist > 20 then
-                    CustomUtils:info("[JobManager] %s returning to parking '%s' (%.0fm away)", employee.name, spot.name, dist)
+                    CustomUtils:info("[JobManager] %s returning to parking '%s' (%.0fm away)",
+                        employee.name, spot.name, dist)
                     self:startReturnToParking(employee, vehicle, spot)
                     return
                 end
@@ -453,22 +908,6 @@ function JobManager:handleParkingArrival(employee)
     end
 end
 
-function JobManager:findToolInParking(categoryName, vehicle)
-    if not g_parkingManager then return nil end
-
-    local tool, spot = g_parkingManager:findToolInParking(categoryName)
-    if tool and spot and vehicle and vehicle.rootNode then
-        local vx, _, vz = getWorldTranslation(vehicle.rootNode)
-        local dx = vx - spot.x
-        local dz = vz - spot.z
-        local dist = math.sqrt(dx * dx + dz * dz)
-
-        if dist < 50 then
-            return tool
-        end
-    end
-    return nil
-end
 
 function JobManager:update(dt)
     for _, employee in ipairs(g_employeeManager.employees) do
@@ -494,14 +933,59 @@ function JobManager:update(dt)
                 CustomUtils:info("[JobManager] Job %d for employee %s finished or removed", employee.currentJob.aiJobId, employee.name)
 
                 if employee.currentJob.type == "TRANSIT" and employee.pendingJob then
-                    CustomUtils:info("[JobManager] Transit complete. Starting pending fieldwork...")
-                    local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+                    CustomUtils:info("[JobManager] Transit complete. Deferring fieldwork start via EQUIPMENT_READY...")
                     local pending = employee.pendingJob
-                    self:startFieldWorkJob(employee, vehicle, pending.fieldId, pending.workType)
+                    employee.pendingJob = nil
+                    employee.currentJob = {
+                        type = "EQUIPMENT_READY",
+                        fieldId = pending.fieldId,
+                        workType = pending.workType,
+                        readyFrame = 0,
+                        readyTime = g_currentMission.time + 500
+                    }
+                elseif employee.currentJob.type == "DRIVING_TO_TOOL" then
+                    CustomUtils:info("[JobManager] %s arrived near tool. Attempting attach or teleport...", employee.name)
+                    local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+                    local tool = g_employeeManager:getVehicleById(employee.currentJob.targetToolId)
+                    if vehicle and tool then
+                        self:tryDirectAttachOrTeleport(employee, vehicle, tool, employee.currentJob.fieldId, employee.currentJob.workType)
+                    else
+                        CustomUtils:error("[JobManager] Vehicle or tool lost after DRIVING_TO_TOOL for %s", employee.name)
+                        employee.currentJob = nil
+                    end
+                elseif employee.currentJob.type == "RETURNING_TOOL" then
+                    CustomUtils:info("[JobManager] %s arrived at drop-off point. Detaching tool...", employee.name)
+                    local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+                    if vehicle then
+                        self:detachAllImplements(vehicle)
+                    end
+                    local nextFieldId = employee.currentJob.nextFieldId
+                    local nextWorkType = employee.currentJob.nextWorkType
+                    employee.currentJob = nil
+                    self:startFieldWork(employee, nextFieldId, nextWorkType)
                 elseif employee.currentJob.type == "RETURN_TO_PARKING" then
                     self:handleParkingArrival(employee)
                 elseif employee.currentJob.type == "FIELDWORK" then
-                    self:handleFieldworkCompletion(employee)
+                    local elapsed = g_currentMission.time - (employee.currentJob.startTime or 0)
+                    if elapsed < 2000 then
+                        employee.rapidFailCount = (employee.rapidFailCount or 0) + 1
+                        CustomUtils:warning("[JobManager] %s: FIELDWORK finished instantly (%dms). Rapid fail #%d",
+                            employee.name, elapsed, employee.rapidFailCount)
+                        if employee.rapidFailCount >= 3 then
+                            CustomUtils:warning("[JobManager] %s: Too many rapid fails. Pausing autonomous mode.", employee.name)
+                            employee.isAutonomous = false
+                            employee.rapidFailCount = 0
+                            employee.currentJob = nil
+                            if employee.temporaryRental then
+                                g_employeeManager:returnRentedEquipment(employee)
+                            end
+                        else
+                            self:handleFieldworkCompletion(employee)
+                        end
+                    else
+                        employee.rapidFailCount = 0
+                        self:handleFieldworkCompletion(employee)
+                    end
                 else
                     employee.currentJob = nil
                     if g_employeeManager then
@@ -511,6 +995,103 @@ function JobManager:update(dt)
                         g_employeeManager:returnRentedEquipment(employee)
                     end
                 end
+            end
+        elseif employee.currentJob and employee.currentJob.type == "EQUIPMENT_READY" then
+            local job = employee.currentJob
+            job.readyFrame = (job.readyFrame or 0) + 1
+
+            if job.readyFrame >= 3 and g_currentMission.time >= (job.readyTime or 0) then
+                CustomUtils:info("[JobManager] EQUIPMENT_READY matured for %s (frames: %d). Evaluating distance...",
+                    employee.name, job.readyFrame)
+
+                local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+                local field = g_fieldManager:getFieldById(job.fieldId)
+
+                if vehicle and field then
+                    local x, z = field:getCenterOfFieldWorldPosition()
+                    local vx, _, vz = getWorldTranslation(vehicle.rootNode)
+                    local distance = MathUtil.vector2Length(vx - x, vz - z)
+
+                    CustomUtils:info("[JobManager] Distance to Field %d: %.1f m", job.fieldId, distance)
+
+                    if distance > 150 then
+                        CustomUtils:info("[JobManager] Field is far. Starting TRANSIT (GOTO) job.")
+                        local aiJob = g_currentMission.aiJobTypeManager:createJob(AIJobType.GOTO)
+                        if aiJob then
+                            local farmId = g_currentMission:getFarmId()
+                            aiJob:applyCurrentState(vehicle, g_currentMission, farmId, false)
+                            aiJob.positionAngleParameter:setPosition(x, z)
+
+                            local dx, dz = x - vx, z - vz
+                            local angle = MathUtil.getYRotationFromDirection(dx, dz)
+                            aiJob.positionAngleParameter:setAngle(angle)
+                            aiJob:setValues()
+
+                            local validateSuccess, errorMessage = aiJob:validate(farmId)
+                            if validateSuccess then
+                                g_currentMission.aiSystem:startJob(aiJob, farmId)
+                                employee.currentJob = {
+                                    aiJobId = aiJob.jobId,
+                                    type = "TRANSIT",
+                                    fieldId = job.fieldId,
+                                    workType = job.workType,
+                                    startTime = g_currentMission.time
+                                }
+                                employee.pendingJob = {
+                                    fieldId = job.fieldId,
+                                    workType = job.workType
+                                }
+                                CustomUtils:info("[JobManager] %s is now in TRANSIT to field %d", employee.name, job.fieldId)
+                            else
+                                CustomUtils:error("[JobManager] Transit GOTO failed validation: %s", tostring(errorMessage))
+                                employee.currentJob = nil
+                            end
+                        else
+                            CustomUtils:error("[JobManager] Failed to create GOTO job")
+                            employee.currentJob = nil
+                        end
+                    else
+                        CustomUtils:info("[JobManager] Starting FIELDWORK for %s (close proximity).", employee.name)
+                        self:startFieldWorkJob(employee, vehicle, job.fieldId, job.workType)
+                    end
+                else
+                    CustomUtils:error("[JobManager] EQUIPMENT_READY: vehicle or field not found for %s", employee.name)
+                    employee.currentJob = nil
+                end
+            else
+                employee.debugTimer = (employee.debugTimer or 0) + dt
+                if employee.debugTimer > 5000 then
+                    employee.debugTimer = 0
+                    CustomUtils:debug("[JobMonitor] %s: EQUIPMENT_READY (frame %d, waiting for stabilization)...",
+                        employee.name, job.readyFrame or 0)
+                end
+            end
+        elseif employee.currentJob and employee.currentJob.type == "ATTACHING_TOOL" then
+            local vehicle = g_employeeManager:getVehicleById(employee.assignedVehicleId)
+            if vehicle then
+                local allDone = true
+                local implements = vehicle:getAttachedImplements()
+                for _, impl in ipairs(implements) do
+                    if impl.attachingIsInProgress then
+                        allDone = false
+                    end
+                end
+
+                if allDone then
+                    local job = employee.currentJob
+                    CustomUtils:info("[JobManager] %s: Tool attachment complete! Proceeding to EQUIPMENT_READY.",
+                        employee.name)
+                    employee.currentJob = {
+                        type = "EQUIPMENT_READY",
+                        fieldId = job.fieldId,
+                        workType = job.workType,
+                        readyFrame = 0,
+                        readyTime = g_currentMission.time + 1000
+                    }
+                end
+            else
+                CustomUtils:error("[JobManager] ATTACHING_TOOL: vehicle lost for %s", employee.name)
+                employee.currentJob = nil
             end
         elseif employee.currentJob and employee.currentJob.type == "PREPARING" then
             employee.debugTimer = (employee.debugTimer or 0) + dt
