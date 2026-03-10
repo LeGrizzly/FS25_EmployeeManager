@@ -38,16 +38,15 @@ function AIOverrideExtension.onToggleAI(vehicle, actionName, inputValue, callbac
     if vehicle == nil then return end
 
     local employee = g_employeeManager:getEmployeeByVehicle(vehicle)
-    
+
     if employee ~= nil then
         if employee.currentJob ~= nil or vehicle:getIsAIActive() then
             g_employeeManager:consoleStopJob(employee.id)
-            g_currentMission:showBlinkingWarning(string.format("Employee %s stopped.", employee.name), 2000)
+            g_currentMission:showBlinkingWarning(string.format(g_i18n:getText("em_employee_stopped") or "Employee %s stopped.", employee.name), 2000)
         else
             g_gui:showGui("MenuEmployeeManager")
         end
     else
         g_gui:showGui("MenuEmployeeManager")
-        g_currentMission:showBlinkingWarning("No employee assigned to this vehicle!", 2000)
     end
 end
