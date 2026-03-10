@@ -20,6 +20,8 @@ EMWorkflowFrame.TASK_REQUIREMENTS = {
     MULCH_LEAVES = { skill = "driving",  level = 1 },
 }
 
+EMWorkflowFrame.MENU_ICON_SLICE_ID = 'EM_IconWorkflow'
+
 function EMWorkflowFrame:new()
     local self = TabbedMenuFrameElement.new(nil, EMWorkflowFrame_mt)
 
@@ -51,6 +53,12 @@ function EMWorkflowFrame:initialize()
         inputAction = InputAction.MENU_EXTRA_1,
         text        = g_i18n:getText("em_btn_save_start"),
         callback    = function() self:onSaveAndStart() end,
+    }
+    self.stopButtonInfo = {
+        profile     = "buttonActivate",
+        inputAction = InputAction.MENU_EXTRA_2,
+        text        = g_i18n:getText("em_btn_stop"),
+        callback    = function() self:onStop() end,
     }
 
     local hourTexts = {}
@@ -172,7 +180,6 @@ function EMWorkflowFrame:populateCellForItemInSection(list, section, index, cell
     local avatarEl   = cell:getAttribute("avatar")
     local iconEl     = cell:getAttribute("icon")
 
-    -- Show avatar, hide atlas icon
     if avatarEl then
         avatarEl:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
         avatarEl:setVisible(true)
@@ -485,14 +492,26 @@ function EMWorkflowFrame:onSave()
     local employee = self:getSelectedEmployee()
     if not employee then return end
 
-    if self.txtStatusMessage then
-        self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_saved"), employee.name))
+    local hasFullConfig = employee.targetFieldId and employee.assignedVehicleId and #(employee.taskQueue or {}) > 0
+
+    if hasFullConfig then
+        employee.isAutonomous = true
+        employee.currentTaskIndex = employee.currentTaskIndex or 1
     end
-    CustomUtils:info("[EMWorkflowFrame] Saved workflow for %s: %d tasks, field=%s, vehicle=%s, shift=%d-%d",
+
+    if self.txtStatusMessage then
+        if hasFullConfig then
+            self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_saved_hint"), employee.name))
+        else
+            self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_saved"), employee.name))
+        end
+    end
+    CustomUtils:info("[EMWorkflowFrame] Saved workflow for %s: %d tasks, field=%s, vehicle=%s, shift=%d-%d, autonomous=%s",
         employee.name, #(employee.taskQueue or {}),
         tostring(employee.targetFieldId), tostring(employee.assignedVehicleId),
-        employee.shiftStart or 6, employee.shiftEnd or 18
+        employee.shiftStart or 6, employee.shiftEnd or 18, tostring(employee.isAutonomous)
     )
+    self:updateMenuButtons()
 end
 
 function EMWorkflowFrame:onSaveAndStart()
@@ -522,18 +541,52 @@ function EMWorkflowFrame:onSaveAndStart()
     self:onSave()
 
     local firstTask = queue[1]
+    employee.currentTaskIndex = 1
     employee.isAutonomous = true
 
-    if g_employeeManager.jobManager:startFieldWork(employee, employee.targetFieldId, firstTask) then
-        if self.txtStatusMessage then
-            self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_started"),
-                employee.name, employee.targetFieldId, firstTask))
+    local currentHour = 0
+    if g_currentMission and g_currentMission.environment then
+        currentHour = g_currentMission.environment.currentHour or 0
+    end
+
+    if employee:isWithinShift(currentHour) then
+        if g_employeeManager.jobManager:startFieldWork(employee, employee.targetFieldId, firstTask) then
+            if self.txtStatusMessage then
+                self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_started"),
+                    employee.name, employee.targetFieldId, firstTask))
+            end
+        else
+            if self.txtStatusMessage then
+                self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_start_failed"), employee.name))
+            end
         end
     else
         if self.txtStatusMessage then
-            self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_start_failed"), employee.name))
+            self.txtStatusMessage:setText(string.format(
+                g_i18n:getText("em_workflow_scheduled"), employee.name, employee.shiftStart or 6))
+        end
+        CustomUtils:info("[EMWorkflowFrame] %s scheduled: outside shift hours (%d:00, shift starts at %d:00)",
+            employee.name, currentHour, employee.shiftStart or 6)
+    end
+end
+
+function EMWorkflowFrame:onStop()
+    local employee = self:getSelectedEmployee()
+    if not employee then return end
+
+    employee.isAutonomous = false
+
+    if employee.currentJob then
+        if g_employeeManager and g_employeeManager.jobManager then
+            g_employeeManager.jobManager:stopJob(employee)
         end
     end
+
+    if self.txtStatusMessage then
+        self.txtStatusMessage:setText(string.format(g_i18n:getText("em_workflow_stopped"), employee.name))
+    end
+    CustomUtils:info("[EMWorkflowFrame] Stopped autonomous mode for %s", employee.name)
+    self:updateMenuButtons()
 end
 
 function EMWorkflowFrame:buildOwnedFieldsList()
@@ -618,12 +671,17 @@ function EMWorkflowFrame:buildOwnedVehiclesList()
 end
 
 function EMWorkflowFrame:updateMenuButtons()
-    local hasSelection = self:getSelectedEmployee() ~= nil
+    local employee = self:getSelectedEmployee()
+    local hasSelection = employee ~= nil
 
     self.menuButtonInfo = { self.backButtonInfo }
     if hasSelection then
         table.insert(self.menuButtonInfo, self.saveButtonInfo)
-        table.insert(self.menuButtonInfo, self.saveStartButtonInfo)
+        if employee.isAutonomous then
+            table.insert(self.menuButtonInfo, self.stopButtonInfo)
+        else
+            table.insert(self.menuButtonInfo, self.saveStartButtonInfo)
+        end
     end
 
     self:setMenuButtonInfoDirty()

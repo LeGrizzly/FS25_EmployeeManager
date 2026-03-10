@@ -2,7 +2,9 @@
 <GUI name="EMEmployee">
     <GuiElement profile="uiInGameMenuFrame">
         <GuiElement profile="fs25_menuHeaderPanel" position="-3px 82px" width="800px">
-            <Bitmap profile="EM_IconEmployee" />
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="EM_IconEmployee" />
+            </Bitmap>
             <Text profile="fs25_menuHeaderTitle" text="$l10n_em_tab_employees" />
         </GuiElement>
 

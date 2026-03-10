@@ -28,19 +28,31 @@ end
 
 function EMGui:setupPages(gui)
     local pages = {
-        { gui.pageEmployees, "images/EMEmployeeIcon.dds" },
-        { gui.pageWorkflows, "images/EMWorkflowIcon.dds" },
-        { gui.pageFields,    "images/EMFieldIcon.dds" },
-        { gui.pageVehicles,  "images/EMVehicleIcon.dds" },
+        gui.pageEmployees,
+        gui.pageWorkflows,
+        gui.pageFields,
+        gui.pageVehicles,
     }
 
-    local uvs = GuiUtils.getUVs({0, 0, 1024, 1024})
+    for idx, page in ipairs(pages) do
+        local iconSliceToFile = {
+            EM_IconMenu     = "images/MenuIcon.dds",
+            EM_IconEmployee = "images/EMEmployeeIcon.dds",
+            EM_IconWorkflow = "images/EMWorkflowIcon.dds",
+            EM_IconField    = "images/EMFieldIcon.dds",
+            EM_IconVehicle  = "images/EMVehicleIcon.dds",
+        }
 
-    for idx, thisPage in ipairs(pages) do
-        local page, iconPath = unpack(thisPage)
+        local iconPath = "images/MenuIcon.dds"
+        local uvs = {0, 0, 1024, 1024}
+
+        if page.MENU_ICON_SLICE_ID ~= nil and iconSliceToFile[page.MENU_ICON_SLICE_ID] ~= nil then
+            iconPath = iconSliceToFile[page.MENU_ICON_SLICE_ID]
+        end
+
         local fullPath = g_modDirectory .. iconPath
         gui:registerPage(page, idx)
-        gui:addPageTab(page, fullPath, uvs)
+        gui:addPageTab(page, fullPath, GuiUtils.getUVs(uvs))
     end
 
     gui:rebuildTabList()
