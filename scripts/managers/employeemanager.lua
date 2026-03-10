@@ -85,7 +85,8 @@ function EmployeeManager:update(dt)
                 CustomUtils:info("[EmployeeManager] %s stopped working (unpaid)", employee.name)
             end
         elseif employee.isHired and employee.currentJob ~= nil then
-            local hoursWorked = employee:updateWorkTime(dt)
+            local effectiveDt = math.min(dt, 200)
+            local hoursWorked = employee:updateWorkTime(effectiveDt)
             if hoursWorked > 0 then
                 local fatigueMult = employee:getFatigueMultiplier()
                 local wage = employee:getHourlyWage() * marketMult * hoursWorked
@@ -130,6 +131,54 @@ function EmployeeManager:update(dt)
                         CustomUtils:error("[EmployeeManager] Target field %d not found for employee %s", employee.targetFieldId, employee.name)
                         employee.isAutonomous = false
                     end
+                end
+            end
+        end
+
+        if employee.isHired and not employee.isUnpaid and employee.isAutonomous
+            and employee.currentJob == nil
+            and (employee.targetCrop == nil or employee.targetCrop == "")
+            and employee.taskQueue and #employee.taskQueue > 0
+            and employee.targetFieldId ~= nil then
+
+            if not employee:canWork() then
+                -- skip: on break or exhausted
+            elseif g_currentMission and g_currentMission.environment and not employee:isWithinShift(g_currentMission.environment.currentHour or 0) then
+                -- skip: outside shift
+            else
+                employee.decisionTimer = (employee.decisionTimer or 0) + dt
+                if employee.decisionTimer > 5000 then
+                    employee.decisionTimer = 0
+                    local idx = employee.currentTaskIndex or 1
+                    if idx <= #employee.taskQueue then
+                        local task = employee.taskQueue[idx]
+                        CustomUtils:info("[EmployeeManager] %s resuming task %d/%d: %s",
+                            employee.name, idx, #employee.taskQueue, task)
+                        local success = self.jobManager:startFieldWork(employee, employee.targetFieldId, task)
+                        if not success then
+                            CustomUtils:warning("[EmployeeManager] %s auto-start FAILED for task %s on field %d",
+                                employee.name, task, employee.targetFieldId)
+                        end
+                    end
+                end
+            end
+        end
+
+        if employee.isHired and employee.isAutonomous and employee.currentJob == nil
+            and employee.taskQueue and #employee.taskQueue > 0 then
+            employee.diagTimer = (employee.diagTimer or 0) + dt
+
+            if employee.diagTimer > 60000 then
+                employee.diagTimer = 0
+                local hour = (g_currentMission and g_currentMission.environment) and g_currentMission.environment.currentHour or 0
+                local reasons = {}
+                if employee.isUnpaid then table.insert(reasons, "UNPAID") end
+                if not employee:canWork() then table.insert(reasons, "CANNOT_WORK (break/exhausted)") end
+                if not employee:isWithinShift(hour) then table.insert(reasons, string.format("OUTSIDE_SHIFT (%d:00, shift %d-%d)", hour, employee.shiftStart or 6, employee.shiftEnd or 18)) end
+                if not employee.targetFieldId then table.insert(reasons, "NO_FIELD") end
+                if employee.targetCrop and employee.targetCrop ~= "" then table.insert(reasons, "HAS_TARGET_CROP (using crop-based path)") end
+                if #reasons > 0 then
+                    CustomUtils:debug("[EmployeeManager] %s idle but autonomous: %s", employee.name, table.concat(reasons, ", "))
                 end
             end
         end
@@ -238,16 +287,18 @@ function EmployeeManager:onHourChanged()
     local currentHour = g_currentMission.environment.currentHour or 0
 
     for _, employee in ipairs(self.employees) do
-        -- if not employee.isHired then
         if employee.isOnBreak then
             if employee.breakEndTime ~= nil and g_currentMission.time >= employee.breakEndTime then
                 employee.isOnBreak = false
                 employee.breakEndTime = nil
                 CustomUtils:info("[EmployeeManager] %s break is over, ready to work", employee.name)
             end
+        elseif employee.currentJob == nil and employee.isAutonomous and currentHour == (employee.shiftStart or 6) then
+            CustomUtils:info("[EmployeeManager] Shift start: %s is autonomous and idle at %d:00 (shift %d-%d), update() will auto-start",
+                employee.name, currentHour, employee.shiftStart or 6, employee.shiftEnd or 18)
         elseif employee.currentJob ~= nil then
             local jobType = employee.currentJob.type
-            if jobType ~= "TRANSIT" and jobType ~= "RETURN_TO_PARKING" and jobType ~= "PREPARING" then
+            if jobType ~= "TRANSIT" and jobType ~= "RETURN_TO_PARKING" and jobType ~= "PREPARING" and jobType ~= "EQUIPMENT_READY" then
                 if not employee:isWithinShift(currentHour) then
                     self.jobManager:stopJob(employee)
                     CustomUtils:info("[EmployeeManager] %s stopped: outside shift hours (%d:00, shift %d-%d)",
@@ -267,6 +318,34 @@ function EmployeeManager:onHourChanged()
                     CustomUtils:info("[EmployeeManager] %s exhausted after %.1fh, stopping until tomorrow", employee.name, employee.dailyHoursWorked)
                 end
             end
+        end
+
+        if employee.isHired then
+            local jobDesc = "NONE"
+            if employee.currentJob then
+                jobDesc = string.format("%s (field %s)", employee.currentJob.type or "?", tostring(employee.currentJob.fieldId or "?"))
+            end
+            local queueDesc = "empty"
+            if employee.taskQueue and #employee.taskQueue > 0 then
+                queueDesc = string.format("%d tasks, idx=%d", #employee.taskQueue, employee.currentTaskIndex or 1)
+            end
+            CustomUtils:info(
+                "[EmployeeManager] HOURLY[%d:00] %s | autonomous=%s | job=%s | field=%s | vehicle=%s | crop=%s | queue=%s | shift=%d-%d | inShift=%s | canWork=%s | unpaid=%s | hoursWorked=%.1f",
+                currentHour,
+                employee.name,
+                tostring(employee.isAutonomous),
+                jobDesc,
+                tostring(employee.targetFieldId),
+                tostring(employee.assignedVehicleId),
+                tostring(employee.targetCrop),
+                queueDesc,
+                employee.shiftStart or 6,
+                employee.shiftEnd or 18,
+                tostring(employee:isWithinShift(currentHour)),
+                tostring(employee:canWork()),
+                tostring(employee.isUnpaid),
+                employee.dailyHoursWorked or 0
+            )
         end
     end
 end
@@ -439,16 +518,25 @@ function EmployeeManager:returnRentedEquipment(employee)
     local tool = self:getVehicleById(toolId)
     
     if tool then
-        CustomUtils:info("[EmployeeManager] Returning rented equipment %s for employee %s", tool:getName(), employee.name)
-        
+        CustomUtils:info("[EmployeeManager] Returning rented equipment %s (ID: %d) for employee %s", tool:getName(), toolId, employee.name)
+
         local vehicle = self:getVehicleById(employee.assignedVehicleId)
         if vehicle and vehicle.detachImplementByObject then
             vehicle:detachImplementByObject(tool)
         end
-        
-        tool:delete()
+
+        if g_currentMission.removeSaleableItem then
+            pcall(g_currentMission.removeSaleableItem, g_currentMission, tool)
+        end
+
+        local ok, err = pcall(tool.delete, tool)
+        if not ok then
+            CustomUtils:warning("[EmployeeManager] Error deleting rented tool ID %d: %s", toolId, tostring(err))
+        end
+    else
+        CustomUtils:warning("[EmployeeManager] Rented tool ID %d not found (already deleted?), clearing reference for %s", toolId, employee.name)
     end
-    
+
     employee.temporaryRental = nil
     employee.isRenting = false
 end
@@ -661,6 +749,19 @@ function EmployeeManager:setFieldConfig(fieldId, cropName, assignments)
     CustomUtils:info("[EmployeeManager] Configured workflow for Field %d: %s", fieldId, cropName)
 end
 
+function EmployeeManager:setFieldTargetCrop(fieldId, cropName)
+    if not self.fieldConfigs[fieldId] then
+        self.fieldConfigs[fieldId] = {}
+    end
+    self.fieldConfigs[fieldId].cropName = cropName
+    CustomUtils:info("[EmployeeManager] Set target crop for Field %d to %s", fieldId, cropName)
+end
+
+function EmployeeManager:getFieldTargetCrop(fieldId)
+    local config = self.fieldConfigs[fieldId]
+    return config and config.cropName or nil
+end
+
 function EmployeeManager:getAssignedEmployeeForStep(fieldId, stepName)
     local config = self.fieldConfigs[fieldId]
     if config and config.assignments then
@@ -867,9 +968,10 @@ function EmployeeManager:saveToXMLFile(xmlFile, key)
 
         if e.targetCrop ~= nil then
             setXMLString(xmlFile, base .. "#targetCrop", e.targetCrop)
-            setXMLInt(xmlFile, base .. "#targetFieldId", e.targetFieldId or 0)
-            setXMLBool(xmlFile, base .. "#isAutonomous", e.isAutonomous or false)
         end
+        setXMLInt(xmlFile, base .. "#targetFieldId", e.targetFieldId or 0)
+        setXMLBool(xmlFile, base .. "#isAutonomous", e.isAutonomous or false)
+        setXMLInt(xmlFile, base .. "#currentTaskIndex", e.currentTaskIndex or 1)
 
         setXMLInt(xmlFile, base .. "#shiftStart", e.shiftStart or 6)
         setXMLInt(xmlFile, base .. "#shiftEnd", e.shiftEnd or 18)
@@ -1003,18 +1105,18 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
             table.insert(emp.taskQueue, taskName)
             qi = qi + 1
         end
+        emp.currentTaskIndex = Utils.getNoNil(getXMLInt(xmlFile, base .. "#currentTaskIndex"), 1)
 
         table.insert(self.employees, emp)
         i = i + 1
     end
 
-    -- Compute max ID from loaded employees as safety fallback
     local maxId = 0
     for _, emp in ipairs(self.employees) do
         if emp.id > maxId then maxId = emp.id end
     end
     self.nextEmployeeId = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#nextEmployeeId"), maxId + 1)
-    -- Ensure nextEmployeeId is always above any loaded ID (guards against stale save data)
+
     if self.nextEmployeeId <= maxId then
         self.nextEmployeeId = maxId + 1
     end
