@@ -35,6 +35,16 @@ function XMLPersistence:save(employeeManager, parkingManager)
     end
 
     employeeManager:saveToXMLFile(xmlFile, "employeeManager")
+
+    local fieldKey = "employeeManager.fieldConfigs"
+    local fIdx = 0
+    for fieldId, config in pairs(employeeManager.fieldConfigs or {}) do
+        local base = string.format("%s.fieldConfig(%d)", fieldKey, fIdx)
+        setXMLInt(xmlFile, base .. "#fieldId", fieldId)
+        setXMLString(xmlFile, base .. "#cropName", config.cropName or "")
+        fIdx = fIdx + 1
+    end
+
     saveXMLFile(xmlFile)
     delete(xmlFile)
 
@@ -67,6 +77,19 @@ function XMLPersistence:load(employeeManager, parkingManager)
     end
 
     employeeManager:loadFromXMLFile(xmlFile, "employeeManager")
+
+    employeeManager.fieldConfigs = {}
+    local fieldKey = "employeeManager.fieldConfigs"
+    local fIdx = 0
+    while true do
+        local base = string.format("%s.fieldConfig(%d)", fieldKey, fIdx)
+        local fId = getXMLInt(xmlFile, base .. "#fieldId")
+        if not fId then break end
+        local cName = getXMLString(xmlFile, base .. "#cropName")
+        employeeManager.fieldConfigs[fId] = { cropName = cName }
+        fIdx = fIdx + 1
+    end
+
     delete(xmlFile)
 
     local hiredCount = 0
