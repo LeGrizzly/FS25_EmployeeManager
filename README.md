@@ -137,13 +137,25 @@ See **[COMMANDS.md](COMMANDS.md)** for the full reference with usage examples.
 2. Place the ZIP file in your FS25 mods folder
 3. Enable the mod in the game's mod manager
 
-## Credits
-- **Author**: LeGrizzly
-- **Version**: 0.0.6
+---
 
 ## Feedback
 
 Your feedback is invaluable as we cultivate this project. Please feel free to raise an issue on this repository to report bugs or suggest new features.
+
+---
+
+## Credits
+- **Author**: LeGrizzly
+- **Version**: 0.0.6
+
+---
+
+## 📝 License
+
+This mod is licensed under **[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)**.
+
+You may share it in its original form with attribution. You may not sell it, modify and redistribute it, or reupload it under a different name or authorship. Contributions via pull request are explicitly permitted and encouraged.
 
 ---
 
