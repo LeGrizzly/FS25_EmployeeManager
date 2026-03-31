@@ -4,6 +4,45 @@
     <!-- Employee Manager: Contracts-style page profiles               -->
     <!-- ============================================================ -->
 
+    <!-- ============================================================ -->
+    <!-- Employee Manager: Icons                                       -->
+    <!-- ============================================================ -->
+
+    <Profile name="EM_IconMenu" extends="baseReference" with="anchorMiddleCenter">
+        <size value="50px 50px" />
+        <imageSliceId value="noSlice" />
+        <imageFilename value="g_EMIconMenu" />
+        <imageColor value="$preset_fs25_colorMainDark" />
+    </Profile>
+
+    <Profile name="EM_IconEmployee" extends="baseReference" with="anchorMiddleCenter">
+        <size value="50px 50px" />
+        <imageSliceId value="noSlice" />
+        <imageFilename value="g_EMIconEmployee" />
+        <imageColor value="$preset_fs25_colorMainDark" />
+    </Profile>
+
+    <Profile name="EM_IconWorkflow" extends="baseReference" with="anchorMiddleCenter">
+        <size value="50px 50px" />
+        <imageSliceId value="noSlice" />
+        <imageFilename value="g_EMIconWorkflow" />
+        <imageColor value="$preset_fs25_colorMainDark" />
+    </Profile>
+
+    <Profile name="EM_IconField" extends="baseReference" with="anchorMiddleCenter">
+        <size value="50px 50px" />
+        <imageSliceId value="noSlice" />
+        <imageFilename value="g_EMIconField" />
+        <imageColor value="$preset_fs25_colorMainDark" />
+    </Profile>
+
+    <Profile name="EM_IconVehicle" extends="baseReference" with="anchorMiddleCenter">
+        <size value="50px 50px" />
+        <imageSliceId value="noSlice" />
+        <imageFilename value="g_EMIconVehicle" />
+        <imageColor value="$preset_fs25_colorMainDark" />
+    </Profile>
+
     <!-- Filter switcher (NEW / ACTIVE / OWNED tabs) -->
     <Profile name="EM_FilterSwitcher" extends="fs25_subCategorySelector" with="anchorTopLeft"/>
 
@@ -97,6 +136,15 @@
         <textColor value="1 1 1 1"/>
         <textAlignment value="right"/>
         <width value="250px"/>
+    </Profile>
+
+    <!-- Row value: left-aligned (for absolute-positioned 2-column layouts) -->
+    <Profile name="EM_RowValue_Left" extends="fs25_textDefault" with="anchorTopLeft">
+        <textSize value="18px"/>
+        <textBold value="true"/>
+        <textColor value="1 1 1 1"/>
+        <textAlignment value="left"/>
+        <width value="200px"/>
     </Profile>
 
     <!-- Skill bars -->
@@ -296,11 +344,11 @@
     </Profile>
 
     <Profile name="emMenuLeftColumn" extends="emptyPanel" with="anchorTopLeft">
-        <size value="320px 780px"/>
+        <size value="400px 780px"/>
     </Profile>
 
     <Profile name="emMenuRightColumn" extends="emptyPanel" with="anchorTopLeft">
-        <size value="420px 780px"/>
+        <size value="400px 780px"/>
         <position value="340px 0px"/>
     </Profile>
 

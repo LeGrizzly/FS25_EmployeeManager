@@ -4,7 +4,7 @@ MenuEmployeeManager.CLASS_NAME = 'MenuEmployeeManager'
 MenuEmployeeManager.MENU_PAGE_NAME = 'menuEmployeeManager'
 MenuEmployeeManager.XML_FILENAME = g_modDirectory .. 'xml/gui/MenuEmployeeManager.xml'
 
-MenuEmployeeManager.MENU_ICON_SLICE_ID = 'MenuEmployeeManager.menuIcon'
+MenuEmployeeManager.MENU_ICON_SLICE_ID = 'EM_IconMenu'
 
 MenuEmployeeManager._mt = Class(MenuEmployeeManager, TabbedMenuFrameElement)
 

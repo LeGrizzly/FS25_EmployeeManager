@@ -28,16 +28,31 @@ end
 
 function EMGui:setupPages(gui)
     local pages = {
-        { gui.pageEmployees, "ingameMenu/tab_character" },
-        { gui.pageWorkflows, "ingameMenu/tab_contracts" },
-        { gui.pageFields,    "ingameMenu/tab_map" },
-        { gui.pageVehicles,  "ingameMenu/tab_vehicles" },
+        gui.pageEmployees,
+        gui.pageWorkflows,
+        gui.pageFields,
+        gui.pageVehicles,
     }
 
-    for idx, thisPage in ipairs(pages) do
-        local page, sliceId = unpack(thisPage)
+    for idx, page in ipairs(pages) do
+        local iconSliceToFile = {
+            EM_IconMenu     = "images/MenuIcon.dds",
+            EM_IconEmployee = "images/EMEmployeeIcon.dds",
+            EM_IconWorkflow = "images/EMWorkflowIcon.dds",
+            EM_IconField    = "images/EMFieldIcon.dds",
+            EM_IconVehicle  = "images/EMVehicleIcon.dds",
+        }
+
+        local iconPath = "images/MenuIcon.dds"
+        local uvs = {0, 0, 1024, 1024}
+
+        if page.MENU_ICON_SLICE_ID ~= nil and iconSliceToFile[page.MENU_ICON_SLICE_ID] ~= nil then
+            iconPath = iconSliceToFile[page.MENU_ICON_SLICE_ID]
+        end
+
+        local fullPath = g_modDirectory .. iconPath
         gui:registerPage(page, idx)
-        gui:addPageTab(page, nil, nil, sliceId)
+        gui:addPageTab(page, fullPath, GuiUtils.getUVs(uvs))
     end
 
     gui:rebuildTabList()

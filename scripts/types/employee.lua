@@ -24,6 +24,7 @@ function Employee.new(id, name, skills)
     self.isRenting = false
     self.isAutonomous = false
     self.taskQueue = {}
+    self.currentTaskIndex = 1
     self.shiftStart = 6
     self.shiftEnd = 18
 
@@ -203,6 +204,7 @@ function Employee:toTable()
         targetFieldId = self.targetFieldId,
         isAutonomous = self.isAutonomous,
         taskQueue = self.taskQueue,
+        currentTaskIndex = self.currentTaskIndex,
         shiftStart = self.shiftStart,
         shiftEnd = self.shiftEnd,
         traits = self.traits,
@@ -243,6 +245,7 @@ function Employee.fromTable(data)
     e.isRenting = data.isRenting
     e.assignedVehicleId = data.assignedVehicleId
     e.taskQueue = data.taskQueue or {}
+    e.currentTaskIndex = data.currentTaskIndex or 1
     e.shiftStart = data.shiftStart or 6
     e.shiftEnd = data.shiftEnd or 18
     if data.traits and type(data.traits) == "table" then
@@ -283,8 +286,9 @@ function Employee:writeStream(streamId, connection)
     end
     streamWriteInt32(streamId, self.shiftStart or 6)
     streamWriteInt32(streamId, self.shiftEnd or 18)
+    streamWriteInt32(streamId, self.currentTaskIndex or 1)
 
-    streamWriteInt8(streamId, 3)
+    streamWriteInt8(streamId, 4)
     local traitsStr = TraitSystem.serialize(self.traits)
     streamWriteString(streamId, traitsStr)
 
@@ -305,6 +309,9 @@ function Employee:writeStream(streamId, connection)
     streamWriteBool(streamId, self.isOnBreak or false)
 
     streamWriteFloat32(streamId, self.milestoneWageMult or 1.0)
+
+    -- v4: autonomous state
+    streamWriteBool(streamId, self.isAutonomous or false)
 
     -- v3: personal info
     streamWriteInt8(streamId, self.age or 30)
@@ -333,6 +340,7 @@ function Employee:readStream(streamId, connection)
     end
     self.shiftStart = streamReadInt32(streamId)
     self.shiftEnd = streamReadInt32(streamId)
+    self.currentTaskIndex = streamReadInt32(streamId)
 
     local streamVersion = streamReadInt8(streamId)
     if streamVersion >= 2 then
@@ -363,6 +371,12 @@ function Employee:readStream(streamId, connection)
         self.milestoneWageMult = streamReadFloat32(streamId)
     else
         self.milestoneWageMult = 1.0
+    end
+
+    if streamVersion >= 4 then
+        self.isAutonomous = streamReadBool(streamId)
+    else
+        self.isAutonomous = false
     end
 
     if streamVersion >= 3 then

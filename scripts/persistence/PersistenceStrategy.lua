@@ -13,12 +13,12 @@ function PersistenceStrategy:isAvailable()
     return false
 end
 
-function PersistenceStrategy:save(employeeManager, parkingManager)
+function PersistenceStrategy:save(employeeManager, parkingManager, snapshotManager)
     CustomUtils:warning("[PersistenceStrategy] save() not implemented for %s", self:getName())
     return false
 end
 
-function PersistenceStrategy:load(employeeManager, parkingManager)
+function PersistenceStrategy:load(employeeManager, parkingManager, snapshotManager)
     CustomUtils:warning("[PersistenceStrategy] load() not implemented for %s", self:getName())
     return false
 end

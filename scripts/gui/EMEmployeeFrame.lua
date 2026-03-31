@@ -7,6 +7,8 @@ EMEmployeeFrame.LIST_TYPE = {
     HIRED     = 2,
 }
 
+EMEmployeeFrame.MENU_ICON_SLICE_ID = 'EM_IconEmployee'
+
 function EMEmployeeFrame:new()
     local self = TabbedMenuFrameElement.new(nil, EMEmployeeFrame_mt)
     self.employees       = {}
@@ -120,8 +122,15 @@ function EMEmployeeFrame:populateCellForItemInSection(list, section, index, cell
             elseif emp.isOnBreak then
                 statusText = g_i18n:getText("em_status_on_break")
             elseif emp.currentJob then
-                if emp.currentJob.type == "RETURN_TO_PARKING" then
+                local jobType = emp.currentJob.type
+                if jobType == "RETURN_TO_PARKING" then
                     statusText = g_i18n:getText("em_status_returning")
+                elseif jobType == "DRIVING_TO_TOOL" then
+                    statusText = g_i18n:getText("em_status_driving_to_tool")
+                elseif jobType == "APPROACHING_TOOL" or jobType == "ATTACHING_TOOL" then
+                    statusText = g_i18n:getText("em_status_attaching_tool")
+                elseif jobType == "RETURNING_TOOL" then
+                    statusText = g_i18n:getText("em_status_returning_tool")
                 else
                     statusText = emp.currentJob.workType or "Working"
                 end
@@ -373,8 +382,15 @@ function EMEmployeeFrame:displayWorkStats(employee)
     if self.statCurrentJob then
         if employee.currentJob then
             local jobType = employee.currentJob.workType or employee.currentJob.type or "Unknown"
-            if employee.currentJob.type == "RETURN_TO_PARKING" then
+            local jt = employee.currentJob.type
+            if jt == "RETURN_TO_PARKING" then
                 jobType = g_i18n:getText("em_status_returning")
+            elseif jt == "DRIVING_TO_TOOL" then
+                jobType = g_i18n:getText("em_status_driving_to_tool")
+            elseif jt == "APPROACHING_TOOL" or jt == "ATTACHING_TOOL" then
+                jobType = g_i18n:getText("em_status_attaching_tool")
+            elseif jt == "RETURNING_TOOL" then
+                jobType = g_i18n:getText("em_status_returning_tool")
             end
             local fieldId = employee.currentJob.fieldId
             if fieldId then

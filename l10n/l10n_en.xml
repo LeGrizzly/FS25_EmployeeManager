@@ -71,11 +71,17 @@
         <text name="em_error_no_hired" text="No hired employees. Hire someone first!" />
         <text name="em_workflow_started" text="%s started workflow on Field %d: %s" />
         <text name="em_workflow_start_failed" text="Failed to start workflow for %s (check vehicle/equipment)." />
+        <text name="em_error_equipment_failed" text="%s: Equipment check failed for %s. Detach incompatible tools or check store availability." />
         <text name="em_workflow_saved" text="Workflow saved for %s." />
+        <text name="em_workflow_scheduled" text="%s scheduled to start at %02d:00." />
+        <text name="em_workflow_saved_hint" text="Workflow saved for %s. Will auto-start at shift begin." />
         <text name="em_shift_label" text="Shift" />
         <text name="em_shift_to" text="to" />
         <text name="em_btn_save_start" text="Save &amp; Start" />
         <text name="em_btn_save" text="Save" />
+        <text name="em_btn_stop" text="Stop" />
+        <text name="em_workflow_stopped" text="%s stopped. Will not auto-start." />
+        <text name="em_workflow_queue_complete" text="All tasks completed for %s. Workflow paused." />
         <text name="em_btn_workflow_editor" text="Workflow Editor" />
 
         <text name="em_tab_employees" text="Employees" />
@@ -90,6 +96,7 @@
         <text name="em_field_area" text="Area" />
         <text name="em_field_crop" text="Current Crop" />
         <text name="em_field_growth" text="Growth State" />
+        <text name="em_field_target_crop" text="Target Crop" />
         <text name="em_field_condition" text="Condition" />
         <text name="em_field_assigned_employee" text="Assigned Employee" />
         <text name="em_field_empty" text="You don't own any fields yet." />
@@ -152,6 +159,9 @@
         <text name="em_stat_parking" text="Parking Spot" />
         <text name="em_no_parking" text="Not assigned" />
         <text name="em_status_returning" text="Returning to parking" />
+        <text name="em_status_driving_to_tool" text="Driving to tool" />
+        <text name="em_status_attaching_tool" text="Attaching tool" />
+        <text name="em_status_returning_tool" text="Returning tool" />
 
         <text name="em_milestone_apprentice" text="Apprentice" />
         <text name="em_milestone_companion" text="Companion" />

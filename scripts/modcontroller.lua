@@ -29,9 +29,10 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
 
     g_employeeManager = EmployeeManager:new(g_currentMission)
     g_parkingManager = ParkingManager:new()
+    g_snapshotManager = VehicleSnapshotManager:new()
 
     g_persistenceManager = PersistenceManager:new()
-    g_persistenceManager:addStrategy(DBAPIPersistence:new())
+    g_persistenceManager:addStrategy(SILODBPersistence:new())
     g_persistenceManager:addStrategy(XMLPersistence:new())
     g_persistenceManager:selectStrategy()
 
@@ -69,7 +70,7 @@ function ModController:loadMap(name, itemSystem, missionInfo, missionDynamicInfo
             g_employeeManager:generateInitialPool(10)
         end
     else
-        CustomUtils:info("[ModController] Load deferred — DBAPI may not be ready yet")
+        CustomUtils:info("[ModController] Load deferred — SILODB may not be ready yet")
     end
 
     if rawget(_G, 'g_modGui') ~= nil then
@@ -86,14 +87,14 @@ end
 
 function ModController:saveEmployees()
     if g_persistenceManager == nil or g_employeeManager == nil then return end
-    g_persistenceManager:save(g_employeeManager, g_parkingManager)
+    g_persistenceManager:save(g_employeeManager, g_parkingManager, g_snapshotManager)
 end
 
 function ModController:loadEmployees(savegameDir)
     if g_persistenceManager == nil or g_employeeManager == nil then
         return false
     end
-    return g_persistenceManager:load(g_employeeManager, g_parkingManager)
+    return g_persistenceManager:load(g_employeeManager, g_parkingManager, g_snapshotManager)
 end
 
 function ModController:deleteMap()
@@ -107,6 +108,7 @@ function ModController:deleteMap()
         g_employeeManager = nil
     end
     g_parkingManager = nil
+    g_snapshotManager = nil
     g_persistenceManager = nil
 end
 
@@ -114,7 +116,7 @@ function ModController:update(dt)
     if not self.deferredLoadAttempted and not self.dataLoaded then
         self.deferredLoadAttempted = true
         g_persistenceManager:selectStrategy()
-        self.dataLoaded = g_persistenceManager:load(g_employeeManager, g_parkingManager)
+        self.dataLoaded = g_persistenceManager:load(g_employeeManager, g_parkingManager, g_snapshotManager)
         if not self.dataLoaded or #g_employeeManager.employees == 0 then
             CustomUtils:info("[ModController] Deferred load: no data, generating pool")
             g_employeeManager:generateInitialPool(10)

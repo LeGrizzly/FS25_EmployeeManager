@@ -64,9 +64,21 @@ function SimpleStatusHUD:draw()
                         color = {1, 1, 0, 1}
                     end
 
-                    if emp.currentJob and emp.currentJob.type == "RETURN_TO_PARKING" then
-                        status = g_i18n:getText("em_status_returning")
-                        color = {0.5, 0.8, 1, 1}
+                    if emp.currentJob then
+                        local jobType = emp.currentJob.type
+                        if jobType == "RETURN_TO_PARKING" then
+                            status = g_i18n:getText("em_status_returning")
+                            color = {0.5, 0.8, 1, 1}
+                        elseif jobType == "DRIVING_TO_TOOL" then
+                            status = g_i18n:getText("em_status_driving_to_tool")
+                            color = {1, 0.8, 0.2, 1}
+                        elseif jobType == "APPROACHING_TOOL" or jobType == "ATTACHING_TOOL" then
+                            status = g_i18n:getText("em_status_attaching_tool")
+                            color = {1, 0.8, 0.2, 1}
+                        elseif jobType == "RETURNING_TOOL" then
+                            status = g_i18n:getText("em_status_returning_tool")
+                            color = {0.5, 0.8, 1, 1}
+                        end
                     end
 
                     setTextColor(unpack(color))
