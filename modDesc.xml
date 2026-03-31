@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
 <modDesc descVersion="106">
     <author>LeGrizzly</author>
-    <version>0.0.7-build-1</version>
+    <version>0.0.8-build-1</version>
     <title>
         <en><![CDATA[Advanced Employee Manager]]></en>
         <fr><![CDATA[Gestion Avancée Des Employés]]></fr>
@@ -19,7 +19,7 @@
         <es><![CDATA[Aporta un nuevo nivel de profundidad a la fuerza laboral de tu granja. Contrata y gestiona empleados con habilidades únicas para optimizar tus operaciones.]]></es>
     </description>
     <dependencies>
-        <dependency optional="true">FS25_DBAPI</dependency>
+        <dependency optional="true">FS25_SILODB</dependency>
     </dependencies>
     <iconFilename>images/icon_employee.dds</iconFilename>
     <multiplayer supported="true" />

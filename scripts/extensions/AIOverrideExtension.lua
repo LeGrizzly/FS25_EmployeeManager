@@ -47,6 +47,7 @@ function AIOverrideExtension.onToggleAI(vehicle, actionName, inputValue, callbac
             g_gui:showGui("MenuEmployeeManager")
         end
     else
+        -- No employee assigned: open EM menu (vanilla AI is disabled)
         g_gui:showGui("MenuEmployeeManager")
     end
 end

@@ -138,6 +138,15 @@
         <width value="250px"/>
     </Profile>
 
+    <!-- Row value: left-aligned (for absolute-positioned 2-column layouts) -->
+    <Profile name="EM_RowValue_Left" extends="fs25_textDefault" with="anchorTopLeft">
+        <textSize value="18px"/>
+        <textBold value="true"/>
+        <textColor value="1 1 1 1"/>
+        <textAlignment value="left"/>
+        <width value="200px"/>
+    </Profile>
+
     <!-- Skill bars -->
     <Profile name="EM_SkillLabel" extends="fs25_textDefault" with="anchorTopLeft">
         <textSize value="18px"/>
@@ -335,11 +344,11 @@
     </Profile>
 
     <Profile name="emMenuLeftColumn" extends="emptyPanel" with="anchorTopLeft">
-        <size value="320px 780px"/>
+        <size value="400px 780px"/>
     </Profile>
 
     <Profile name="emMenuRightColumn" extends="emptyPanel" with="anchorTopLeft">
-        <size value="420px 780px"/>
+        <size value="400px 780px"/>
         <position value="340px 0px"/>
     </Profile>
 

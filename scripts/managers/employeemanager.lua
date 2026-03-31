@@ -85,7 +85,7 @@ function EmployeeManager:update(dt)
                 CustomUtils:info("[EmployeeManager] %s stopped working (unpaid)", employee.name)
             end
         elseif employee.isHired and employee.currentJob ~= nil then
-            local effectiveDt = math.min(dt, 200)
+            local effectiveDt = math.min(dt, 200) -- Cap at 200ms: prevent wage inflation during time acceleration
             local hoursWorked = employee:updateWorkTime(effectiveDt)
             if hoursWorked > 0 then
                 local fatigueMult = employee:getFatigueMultiplier()
@@ -135,11 +135,12 @@ function EmployeeManager:update(dt)
             end
         end
 
+        -- Task-queue-based autonomous restart (no targetCrop, uses taskQueue instead)
         if employee.isHired and not employee.isUnpaid and employee.isAutonomous
-            and employee.currentJob == nil
-            and (employee.targetCrop == nil or employee.targetCrop == "")
-            and employee.taskQueue and #employee.taskQueue > 0
-            and employee.targetFieldId ~= nil then
+           and employee.currentJob == nil
+           and (employee.targetCrop == nil or employee.targetCrop == "")
+           and employee.taskQueue and #employee.taskQueue > 0
+           and employee.targetFieldId ~= nil then
 
             if not employee:canWork() then
                 -- skip: on break or exhausted
@@ -164,10 +165,10 @@ function EmployeeManager:update(dt)
             end
         end
 
+        -- Diagnostic: autonomous employees that SHOULD be working but aren't
         if employee.isHired and employee.isAutonomous and employee.currentJob == nil
-            and employee.taskQueue and #employee.taskQueue > 0 then
+           and employee.taskQueue and #employee.taskQueue > 0 then
             employee.diagTimer = (employee.diagTimer or 0) + dt
-
             if employee.diagTimer > 60000 then
                 employee.diagTimer = 0
                 local hour = (g_currentMission and g_currentMission.environment) and g_currentMission.environment.currentHour or 0
@@ -287,6 +288,7 @@ function EmployeeManager:onHourChanged()
     local currentHour = g_currentMission.environment.currentHour or 0
 
     for _, employee in ipairs(self.employees) do
+        -- if not employee.isHired then
         if employee.isOnBreak then
             if employee.breakEndTime ~= nil and g_currentMission.time >= employee.breakEndTime then
                 employee.isOnBreak = false
@@ -320,6 +322,7 @@ function EmployeeManager:onHourChanged()
             end
         end
 
+        -- Hourly state dump for ALL hired employees
         if employee.isHired then
             local jobDesc = "NONE"
             if employee.currentJob then
@@ -1111,12 +1114,13 @@ function EmployeeManager:loadFromXMLFile(xmlFile, key)
         i = i + 1
     end
 
+    -- Compute max ID from loaded employees as safety fallback
     local maxId = 0
     for _, emp in ipairs(self.employees) do
         if emp.id > maxId then maxId = emp.id end
     end
     self.nextEmployeeId = Utils.getNoNil(getXMLInt(xmlFile, key .. ".poolState#nextEmployeeId"), maxId + 1)
-
+    -- Ensure nextEmployeeId is always above any loaded ID (guards against stale save data)
     if self.nextEmployeeId <= maxId then
         self.nextEmployeeId = maxId + 1
     end

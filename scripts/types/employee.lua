@@ -310,8 +310,10 @@ function Employee:writeStream(streamId, connection)
 
     streamWriteFloat32(streamId, self.milestoneWageMult or 1.0)
 
+    -- v4: autonomous state
     streamWriteBool(streamId, self.isAutonomous or false)
 
+    -- v3: personal info
     streamWriteInt8(streamId, self.age or 30)
     streamWriteString(streamId, self.nationality or "FR")
     streamWriteString(streamId, self.gender or "male")

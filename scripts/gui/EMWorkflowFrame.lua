@@ -180,6 +180,7 @@ function EMWorkflowFrame:populateCellForItemInSection(list, section, index, cell
     local avatarEl   = cell:getAttribute("avatar")
     local iconEl     = cell:getAttribute("icon")
 
+    -- Show avatar, hide atlas icon
     if avatarEl then
         avatarEl:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
         avatarEl:setVisible(true)

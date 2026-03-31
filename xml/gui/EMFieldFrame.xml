@@ -10,121 +10,120 @@
 
         <GuiElement profile="emptyPanel" id="mainBox" position="0px -80px">
 
-            <GuiElement profile="emMenuLeftColumn">
-                <Text profile="EM_SectionTitle" position="20px -10px" text="$l10n_em_field_list_title" />
+            <GuiElement profile="emMenuLeftColumn" width="400px" debugEnabled="true">
+                <Text profile="EM_SectionTitle" position="20px -20px" text="$l10n_em_field_list_title" />
 
-                <SmoothList id="fieldList" profile="emMenuList" position="10px -40px" width="300px" height="700px"
-                            selectedWithoutFocus="true">
-                    <ListItem profile="emMenuListItem">
-                        <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>
-                        <Text profile="emMenuListItemTitle" name="title"/>
-                        <Text profile="emMenuListItemSubtitle" name="subtitle"/>
-                    </ListItem>
-                </SmoothList>
-
-                <ThreePartBitmap profile="emMenuListSliderBox">
-                    <Slider profile="fs25_listSlider" dataElementId="fieldList" />
-                </ThreePartBitmap>
+                <GuiElement profile="fs25_subCategoryListContainer" id="fieldsContainer" position="0px -60px" width="400px" height="700px">
+                    <SmoothList id="fieldList" profile="EM_List" startClipperElementName="startClipper" endClipperElementName="endClipper">
+                        <ListItem profile="EM_ListItem" width="400px">
+                            <!-- <Bitmap profile="EM_ListItemAvatar" name="avatar"/> -->
+                            <Bitmap profile="fs25_subCategoryListItemIcon" name="icon"/>
+                            <Text profile="EM_ListItemTitle" name="title" width="100"/>
+                            <Text profile="EM_ListItemSubtitle" name="subtitle" width="50"/>
+                        </ListItem>
+                    </SmoothList>
+    
+                    <ThreePartBitmap profile="fs25_subCategoryListSliderBox" debugEnabled="true">
+                        <Slider profile="fs25_listSlider" dataElementId="employeeList"/>
+                    </ThreePartBitmap>
+                </GuiElement>
             </GuiElement>
 
-            <GuiElement profile="emMenuRightColumn" id="detailPanel">
+            <Bitmap profile="fs25_settingsTooltipSeparator" id="columnSeparator" position="420px 0px"/>
+
+            <GuiElement profile="emMenuRightColumn" id="detailPanel" position="440px 0px">
                 <Text profile="EM_DetailTitle" id="txtFieldId" position="10px -10px"/>
 
-                <BoxLayout profile="EM_ColBoxV" position="10px -55px" width="390px">
-                    <BoxLayout profile="EM_RowBoxH" width="390px">
-                        <Text profile="EM_RowLabel" text="$l10n_em_field_area" width="160px"/>
-                        <Text profile="EM_RowValue" id="txtFieldArea" width="220px"/>
-                    </BoxLayout>
-                    <BoxLayout profile="EM_RowBoxH" width="390px">
-                        <Text profile="EM_RowLabel" text="$l10n_em_field_crop" width="160px"/>
-                        <Text profile="EM_RowValue" id="txtCurrentCrop" width="220px"/>
-                    </BoxLayout>
-                    <BoxLayout profile="EM_RowBoxH" width="390px">
-                        <Text profile="EM_RowLabel" text="$l10n_em_field_growth" width="160px"/>
-                        <Text profile="EM_RowValue" id="txtGrowthState" width="220px"/>
-                    </BoxLayout>
-                    <BoxLayout profile="EM_RowBoxH" width="390px">
-                        <Text profile="EM_RowLabel" text="$l10n_em_field_target_crop" width="160px"/>
-                        <CheckedOptionElement id="targetCropSelector" profile="emMenuCheckedOption" width="220px" onClick="onTargetCropChanged" />
-                    </BoxLayout>
-                </BoxLayout>
+                <!-- Field info: 2-column layout (label X=10, value X=170) -->
+                <Text profile="EM_RowLabel" position="10px -55px" text="Area:" width="160px"/>
+                <Text profile="EM_RowValue_Left" id="txtFieldArea" position="170px -55px" width="200px"/>
 
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -165px" width="390px"/>
+                <Text profile="EM_RowLabel" position="10px -80px" text="Current Crop:" width="160px"/>
+                <Text profile="EM_RowValue_Left" id="txtCurrentCrop" position="170px -80px" width="200px"/>
 
-                <Text profile="EM_SectionTitle" position="10px -185px" text="$l10n_em_field_condition"/>
-                <Text profile="EM_RowLabel" id="txtFieldCondition" position="10px -210px" width="390px"/>
+                <Text profile="EM_RowLabel" position="10px -105px" text="Growth State:" width="160px"/>
+                <Text profile="EM_RowValue_Left" id="txtGrowthState" position="170px -105px" width="200px"/>
 
-                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -245px" width="390px"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -135px" width="370px"/>
 
-                <Text profile="EM_SectionTitle" position="10px -265px" text="$l10n_em_field_assigned_employee"/>
+                <!-- Target Crop selector -->
+                <Text profile="EM_SectionTitle" position="10px -150px" text="$l10n_em_field_target_crop"/>
+                <MultiTextOption profile="EM_InfoSelector" id="targetCropSelector" onClick="onTargetCropChanged" size="370px 32px" position="10px -175px"/>
+
+                <!-- Save button -->
+                <Button profile="buttonActivate" id="btnSaveFieldConfig" text="$l10n_em_btn_save" onClick="onSaveFieldConfig" position="10px -220px" size="120px 32px">
+                    <Bitmap profile="fs25_dialogButtonBoxSeparator"/>
+                </Button>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -260px" width="370px"/>
+
+                <!-- Condition -->
+                <Text profile="EM_SectionTitle" position="10px -275px" text="$l10n_em_field_condition"/>
+                <Text profile="EM_RowLabel" id="txtFieldCondition" position="10px -300px" width="370px"/>
+
+                <ThreePartBitmap profile="fs25_lineSeparatorTop" position="10px -330px" width="370px"/>
+
+                <!-- Assigned Employee -->
+                <Text profile="EM_SectionTitle" position="10px -345px" text="$l10n_em_field_assigned_employee"/>
 
                 <!-- Shown when NO employee is assigned -->
-                <Text profile="EM_RowValue" id="txtNoEmployee" position="10px -290px" width="390px"/>
+                <Text profile="EM_RowValue_Left" id="txtNoEmployee" position="10px -370px" width="370px"/>
 
                 <!-- Shown when an employee IS assigned -->
-                <GuiElement id="assignedEmployeeSection" position="10px -290px" width="390px" visible="false">
+                <GuiElement id="assignedEmployeeSection" position="10px -370px" width="370px" visible="false">
 
                     <!-- Name -->
-                    <Text profile="EM_RowValue" id="txtAssignedEmployee" position="0px 0px" width="390px"/>
+                    <Text profile="EM_RowValue_Left" id="txtAssignedEmployee" position="0px 0px" width="370px"/>
 
-                    <!-- Basic info rows -->
-                    <BoxLayout profile="EM_ColBoxV" position="0px -28px" width="390px">
-                        <BoxLayout profile="EM_RowBoxH" width="390px">
-                            <Text profile="EM_RowLabel" text="$l10n_em_employee_status_label" width="160px"/>
-                            <Text profile="EM_RowValue" id="txtEmpStatus" width="220px"/>
-                        </BoxLayout>
-                        <BoxLayout profile="EM_RowBoxH" width="390px">
-                            <Text profile="EM_RowLabel" text="$l10n_em_assigned_vehicle" width="160px"/>
-                            <Text profile="EM_RowValue" id="txtEmpVehicle" width="220px"/>
-                        </BoxLayout>
-                        <BoxLayout profile="EM_RowBoxH" width="390px">
-                            <Text profile="EM_RowLabel" text="$l10n_em_shift_label" width="160px"/>
-                            <Text profile="EM_RowValue" id="txtEmpShift" width="220px"/>
-                        </BoxLayout>
-                        <BoxLayout profile="EM_RowBoxH" width="390px">
-                            <Text profile="EM_RowLabel" text="$l10n_em_stat_fatigue" width="160px"/>
-                            <Text profile="EM_RowValue" id="txtEmpFatigue" width="220px"/>
-                        </BoxLayout>
-                    </BoxLayout>
+                    <!-- Basic info: 2-column (label X=0, value X=160) -->
+                    <Text profile="EM_RowLabel" position="0px -28px" text="Status:" width="160px"/>
+                    <Text profile="EM_RowValue_Left" id="txtEmpStatus" position="160px -28px" width="200px"/>
+
+                    <Text profile="EM_RowLabel" position="0px -53px" text="Vehicle:" width="160px"/>
+                    <Text profile="EM_RowValue_Left" id="txtEmpVehicle" position="160px -53px" width="200px"/>
+
+                    <Text profile="EM_RowLabel" position="0px -78px" text="Shift:" width="160px"/>
+                    <Text profile="EM_RowValue_Left" id="txtEmpShift" position="160px -78px" width="200px"/>
+
+                    <Text profile="EM_RowLabel" position="0px -103px" text="Fatigue:" width="160px"/>
+                    <Text profile="EM_RowValue_Left" id="txtEmpFatigue" position="160px -103px" width="200px"/>
 
                     <!-- Separator: Info -> Skills -->
-                    <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -160px" width="390px"/>
+                    <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -133px" width="370px"/>
 
                     <!-- Skills section -->
-                    <Text profile="EM_SectionTitle" position="0px -175px" text="$l10n_em_employee_skills_title"/>
+                    <Text profile="EM_SectionTitle" position="0px -148px" text="$l10n_em_employee_skills_title"/>
 
                     <!-- Driving -->
-                    <Text profile="EM_SkillLabel" position="0px -200px" text="$l10n_em_skill_driving" width="100px"/>
-                    <ThreePartBitmap profile="EM_SkillBarBackground" position="100px -205px" width="210px">
+                    <Text profile="EM_SkillLabel" position="0px -173px" text="$l10n_em_skill_driving" width="100px"/>
+                    <ThreePartBitmap profile="EM_SkillBarBackground" position="100px -178px" width="200px">
                         <ThreePartBitmap profile="EM_SkillBar" id="barEmpDriving"/>
                     </ThreePartBitmap>
-                    <Text profile="EM_SkillLevel" id="txtEmpDrivingLevel" position="318px -200px" width="62px"/>
+                    <Text profile="EM_SkillLevel" id="txtEmpDrivingLevel" position="308px -173px" width="62px"/>
 
                     <!-- Harvesting -->
-                    <Text profile="EM_SkillLabel" position="0px -225px" text="$l10n_em_skill_harvesting" width="100px"/>
-                    <ThreePartBitmap profile="EM_SkillBarBackground" position="100px -230px" width="210px">
+                    <Text profile="EM_SkillLabel" position="0px -198px" text="$l10n_em_skill_harvesting" width="100px"/>
+                    <ThreePartBitmap profile="EM_SkillBarBackground" position="100px -203px" width="200px">
                         <ThreePartBitmap profile="EM_SkillBar" id="barEmpHarvesting"/>
                     </ThreePartBitmap>
-                    <Text profile="EM_SkillLevel" id="txtEmpHarvestingLevel" position="318px -225px" width="62px"/>
+                    <Text profile="EM_SkillLevel" id="txtEmpHarvestingLevel" position="308px -198px" width="62px"/>
 
                     <!-- Technical -->
-                    <Text profile="EM_SkillLabel" position="0px -250px" text="$l10n_em_skill_technical" width="100px"/>
-                    <ThreePartBitmap profile="EM_SkillBarBackground" position="100px -255px" width="210px">
+                    <Text profile="EM_SkillLabel" position="0px -223px" text="$l10n_em_skill_technical" width="100px"/>
+                    <ThreePartBitmap profile="EM_SkillBarBackground" position="100px -228px" width="200px">
                         <ThreePartBitmap profile="EM_SkillBar" id="barEmpTechnical"/>
                     </ThreePartBitmap>
-                    <Text profile="EM_SkillLevel" id="txtEmpTechnicalLevel" position="318px -250px" width="62px"/>
+                    <Text profile="EM_SkillLevel" id="txtEmpTechnicalLevel" position="308px -223px" width="62px"/>
 
                     <!-- Separator: Skills -> Workflow -->
-                    <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -275px" width="390px"/>
+                    <ThreePartBitmap profile="fs25_lineSeparatorTop" position="0px -253px" width="370px"/>
 
                     <!-- Workflow section -->
-                    <Text profile="EM_SectionTitle" position="0px -290px" text="$l10n_em_workflow_builder"/>
-                    <Text profile="EM_RowLabel" id="txtEmpWorkflow" position="0px -312px" width="390px"/>
+                    <Text profile="EM_SectionTitle" position="0px -268px" text="$l10n_em_workflow_builder"/>
+                    <Text profile="EM_RowLabel" id="txtEmpWorkflow" position="0px -290px" width="370px"/>
 
-                    <BoxLayout profile="EM_RowBoxH" position="0px -340px" width="390px">
-                        <Text profile="EM_RowLabel" text="$l10n_em_stat_current_job" width="160px"/>
-                        <Text profile="EM_RowValue" id="txtEmpCurrentTask" width="220px"/>
-                    </BoxLayout>
+                    <Text profile="EM_RowLabel" position="0px -318px" text="Current Job:" width="160px"/>
+                    <Text profile="EM_RowValue_Left" id="txtEmpCurrentTask" position="160px -318px" width="200px"/>
                 </GuiElement>
             </GuiElement>
         </GuiElement>

@@ -29,7 +29,7 @@ function PersistenceManager:selectStrategy()
     return nil
 end
 
-function PersistenceManager:save(employeeManager, parkingManager)
+function PersistenceManager:save(employeeManager, parkingManager, snapshotManager)
     if employeeManager == nil then
         CustomUtils:warning("[PersistenceManager] save() called with nil employeeManager")
         return false
@@ -49,7 +49,7 @@ function PersistenceManager:save(employeeManager, parkingManager)
     CustomUtils:info("[PersistenceManager] Saving with %s...", strategy:getName())
 
     local ok, result = pcall(function()
-        return strategy:save(employeeManager, parkingManager)
+        return strategy:save(employeeManager, parkingManager, snapshotManager)
     end)
 
     if ok and result then
@@ -66,7 +66,7 @@ function PersistenceManager:save(employeeManager, parkingManager)
     return false
 end
 
-function PersistenceManager:load(employeeManager, parkingManager)
+function PersistenceManager:load(employeeManager, parkingManager, snapshotManager)
     if employeeManager == nil then
         CustomUtils:warning("[PersistenceManager] load() called with nil employeeManager")
         return false
@@ -86,7 +86,7 @@ function PersistenceManager:load(employeeManager, parkingManager)
     CustomUtils:info("[PersistenceManager] Loading with %s...", strategy:getName())
 
     local ok, result = pcall(function()
-        return strategy:load(employeeManager, parkingManager)
+        return strategy:load(employeeManager, parkingManager, snapshotManager)
     end)
 
     if ok and result then

@@ -115,6 +115,7 @@ function MenuEmployeeManager:updateContent()
 
     local hasItem = self.leftListTable:getItemCount() > 0
 
+    -- Toggle visibility of containers
     if self.employeesContainer then
         self.employeesContainer:setVisible(hasItem)
     end
@@ -168,23 +169,29 @@ function MenuEmployeeManager:displayEmployeeDetails(employee)
     self.personalPanelContainer:setVisible(true)
     if self.columnSeparator then self.columnSeparator:setVisible(true) end
 
+    -- Avatar
     if self.detailAvatar ~= nil then
         self.detailAvatar:setImageFilename(g_modDirectory .. "textures/assets/profil_male_1.png")
     end
 
+    -- Identity
     self.employeeName:setText(employee.name)
     self.employeeId:setText(string.format("ID: %d", employee.id))
 
+    -- Trait (subtitle under name)
     if self.employeeTrait ~= nil then
         local traitName = employee.getTraitName and employee:getTraitName() or nil
         self.employeeTrait:setText(traitName or g_i18n:getText("em_none"))
     end
 
+    -- Status
     local statusKey = employee.isHired and "em_status_hired" or "em_status_available"
     self.employeeStatusValue:setText(g_i18n:getText(statusKey))
 
+    -- Skills with progress bars
     self:displaySkills(employee)
 
+    -- Work stats (conditionally visible)
     local isHired = employee.isHired
     if self.workStatsSection then
         self.workStatsSection:setVisible(isHired)
@@ -193,14 +200,17 @@ function MenuEmployeeManager:displayEmployeeDetails(employee)
         self:displayWorkStats(employee)
     end
 
+    -- Traits list
     if self.txtTraitsList then
         local traitName = employee.getTraitName and employee:getTraitName() or nil
         self.txtTraitsList:setText(traitName or g_i18n:getText("em_none"))
     end
 
+    -- Wage
     local wage = employee.getDailyWage and employee:getDailyWage() or 0
     self.employeeWageValue:setText(g_i18n:formatMoney(wage, 0, true, false))
 
+    -- Personal info (right column)
     self:displayPersonalInfo(employee)
 end
 
@@ -265,6 +275,7 @@ function MenuEmployeeManager:displayWorkStats(employee)
         end
     end
 
+    -- Assigned field
     if self.txtAssignedField then
         if employee.targetFieldId then
             self.txtAssignedField:setText(string.format("Field %d", employee.targetFieldId))
@@ -273,6 +284,7 @@ function MenuEmployeeManager:displayWorkStats(employee)
         end
     end
 
+    -- Fatigue
     if self.statFatigue then
         local fatigue = employee.fatigueLevel or 0
         if employee.isOnBreak then
@@ -288,11 +300,13 @@ function MenuEmployeeManager:displayWorkStats(employee)
 end
 
 function MenuEmployeeManager:displayPersonalInfo(employee)
+    -- Age
     if self.txtPersonalAge then
         local age = employee.age or 30
         self.txtPersonalAge:setText(tostring(age))
     end
 
+    -- Nationality
     if self.txtPersonalNationality then
         local natKey = "em_nationality_" .. (employee.nationality or "FR")
         local natText = g_i18n:getText(natKey)
@@ -302,6 +316,7 @@ function MenuEmployeeManager:displayPersonalInfo(employee)
         self.txtPersonalNationality:setText(natText)
     end
 
+    -- Biography
     if self.txtPersonalBio then
         local bioKey = employee.bioKey or "em_bio_default"
         local bioText = g_i18n:getText(bioKey)
@@ -309,6 +324,7 @@ function MenuEmployeeManager:displayPersonalInfo(employee)
         self.txtPersonalBio:setText(bioText)
     end
 
+    -- Quote
     if self.txtPersonalQuote then
         local quoteKey = employee.quoteKey or "em_quote_default"
         local quoteText = g_i18n:getText(quoteKey)

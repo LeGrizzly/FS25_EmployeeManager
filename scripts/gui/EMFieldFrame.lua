@@ -4,8 +4,9 @@ local EMFieldFrame_mt = Class(EMFieldFrame, TabbedMenuFrameElement)
 
 function EMFieldFrame:new()
     local self = TabbedMenuFrameElement.new(nil, EMFieldFrame_mt)
-    self.fields         = {}
-    self.menuButtonInfo = {}
+    self.fields             = {}
+    self.menuButtonInfo     = {}
+    self.pendingTargetCrop  = nil
     return self
 end
 
@@ -189,6 +190,8 @@ function EMFieldFrame:displayFieldDetails(index)
         self.targetCropSelector:setState(state, false)
     end
 
+    self.pendingTargetCrop = nil
+
     local conditionText = self:getFieldCondition(fieldData.fieldRef)
     if self.txtFieldCondition then
         self.txtFieldCondition:setText(conditionText)
@@ -276,10 +279,12 @@ function EMFieldFrame:getAssignedEmployee(fieldId)
 end
 
 function EMFieldFrame:displayAssignedEmployee(emp)
+    -- Name
     if self.txtAssignedEmployee then
         self.txtAssignedEmployee:setText(emp.name or "???")
     end
 
+    -- Status
     if self.txtEmpStatus then
         local statusText
         if emp.isUnpaid then
@@ -309,6 +314,7 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         self.txtEmpStatus:setText(statusText)
     end
 
+    -- Vehicle
     if self.txtEmpVehicle then
         local vehicleName = g_i18n:getText("em_none")
         if emp.assignedVehicleId and g_employeeManager then
@@ -325,6 +331,7 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         self.txtEmpVehicle:setText(vehicleName)
     end
 
+    -- Shift
     if self.txtEmpShift then
         self.txtEmpShift:setText(string.format("%02d:00 %s %02d:00",
             emp.shiftStart or 6,
@@ -332,6 +339,7 @@ function EMFieldFrame:displayAssignedEmployee(emp)
             emp.shiftEnd or 18))
     end
 
+    -- Fatigue
     if self.txtEmpFatigue then
         local fatigue = emp.fatigueLevel or 0
         self.txtEmpFatigue:setText(string.format("%.0f%%", fatigue))
@@ -346,8 +354,10 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         end
     end
 
+    -- Skills
     self:displaySkills(emp)
 
+    -- Workflow queue
     if self.txtEmpWorkflow then
         local queue = emp.taskQueue or {}
         if #queue > 0 then
@@ -361,6 +371,7 @@ function EMFieldFrame:displayAssignedEmployee(emp)
         end
     end
 
+    -- Current task
     if self.txtEmpCurrentTask then
         if emp.currentJob then
             local jobType = emp.currentJob.workType or emp.currentJob.type or "Unknown"
@@ -442,9 +453,18 @@ function EMFieldFrame:getMenuButtonInfo()
 end
 
 function EMFieldFrame:onTargetCropChanged(state)
+    if self.cropNames[state] then
+        self.pendingTargetCrop = self.cropNames[state]
+    end
+end
+
+function EMFieldFrame:onSaveFieldConfig()
     local index = self.fieldList:getSelectedIndex()
     local fieldData = self.fields[index]
-    if fieldData and self.cropNames[state] then
-        g_employeeManager:setFieldTargetCrop(fieldData.fieldId, self.cropNames[state])
+    if fieldData == nil then return end
+
+    if self.pendingTargetCrop then
+        g_employeeManager:setFieldTargetCrop(fieldData.fieldId, self.pendingTargetCrop)
+        self.pendingTargetCrop = nil
     end
 end
